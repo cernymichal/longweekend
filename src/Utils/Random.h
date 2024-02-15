@@ -3,6 +3,8 @@
 #include <chrono>
 #include <random>
 
+#include "Math.h"
+
 /*
  * @brief Fast pseudo random number generator by Sebastiano Vigna
  */
@@ -111,6 +113,8 @@ private:
 
 inline Xoshiro256SS RANDOM_GENERATOR;
 
+// TODO templates
+
 /*
  * @return A random uint64.
  *
@@ -172,4 +176,60 @@ inline double randomDouble(double min, double max) {
  */
 inline double randomDouble() {
     return randomDouble(0.0, 1.0);
+}
+
+/*
+ * @param min The minimum value of the range.
+ * @param max The maximum value of the range.
+ * @return A random vec3 with components in the range [min, max).
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec3 randomVec3(float min, float max) {
+    return vec3(randomFloat(min, max), randomFloat(min, max), randomFloat(min, max));
+}
+
+/*
+ * @return A random vec3 with components in the range [0, 1).
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec3 randomVec3() {
+    return randomVec3(0.0f, 1.0f);
+}
+
+/*
+ * @return A random vec3 contained in a unit sphere.
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec3 randomVecInUnitSphere() {
+    // TODO make faster?
+
+    while (true) {
+        vec3 v = randomVec3(-1.0f, 1.0f);
+        if (glm::length2(v) > 1.0f)
+            continue;
+
+        return v;
+    }
+}
+
+/*
+ * @return A random unit vec3.
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec3 randomUnitVec3() {
+    return glm::normalize(randomVecInUnitSphere());
+}
+
+/*
+ * @return A random unit vec3 on a hemisphere given by a normal.
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec3 randomVecOnHemisphere(const vec3& normal) {
+    auto v = randomUnitVec3();
+    return glm::dot(v, normal) >= 0.0f ? v : -v;
 }
