@@ -2,12 +2,15 @@
 
 #include "Ray.h"
 
+class Material;
+
 struct HitRecord {
     bool hit = false;
     float t = 0.0f;
     vec3 point = vec3(0);
     vec3 normal = vec3(0);
     bool frontFace = false;
+    Ref<Material> material;
 
     void setFaceNormal(const Ray& ray, const vec3& outwardNormal) {
         // outwardNormal is assumed to be normalized

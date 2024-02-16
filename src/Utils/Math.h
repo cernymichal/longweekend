@@ -29,6 +29,10 @@ using mat3 = glm::mat3;
 using mat4 = glm::mat4;
 using quat = glm::quat;
 
+constexpr inline vec3 reflect(const vec3& v, const vec3& normal) {
+    return v - 2.0f * glm::dot(v, normal) * normal;
+}
+
 template <typename T>
 inline std::ostream& operator<<(std::ostream& os, const glm::vec<2, T>& v) {
     os << "(" << v.x << ", " << v.y << ")";
@@ -52,17 +56,17 @@ template <typename T>
 struct Interval {
     T min, max;
 
-    Interval() = default;
+    constexpr Interval() = default;
 
-    Interval(T min, T max) : min(min), max(max) {}
+    constexpr Interval(T min, T max) : min(min), max(max) {}
 
-    T length() const { return max - min; }
+    constexpr T length() const { return max - min; }
 
-    bool contains(T value) const { return value >= min && value <= max; }
+    constexpr bool contains(T value) const { return value >= min && value <= max; }
 
-    bool surrounds(T value) const { return value > min && value < max; }
+    constexpr bool surrounds(T value) const { return value > min && value < max; }
 
-    T clamp(T value) const { return std::max(min, std::min(max, value)); }
+    constexpr T clamp(T value) const { return std::max(min, std::min(max, value)); }
 
     static const Interval<T> empty;
     static const Interval<T> universe;

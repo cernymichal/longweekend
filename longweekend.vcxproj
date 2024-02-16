@@ -212,6 +212,7 @@
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\HittableGroup.h" />
     <ClInclude Include="src\IHittable.h" />
+    <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\Utils\Log.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Ray.h" />

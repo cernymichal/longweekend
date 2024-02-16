@@ -14,6 +14,9 @@ inline std::shared_ptr<T> copyShared(const std::shared_ptr<T>& ptr) {
 template <typename T>
 using Ref = std::shared_ptr<T>;
 
+template <typename T>
+using WeakRef = std::weak_ptr<T>;
+
 template <typename T, typename... Args>
 inline Ref<T> makeRef(Args&&... args) {
     return std::make_shared<T>(std::forward<Args>(args)...);

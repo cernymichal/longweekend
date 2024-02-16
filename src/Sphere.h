@@ -6,8 +6,9 @@ class Sphere : public IHittable {
 public:
     vec3 m_center;
     float m_radius;
+    Ref<Material> m_material;
 
-    Sphere(const vec3& center, float radius) : m_center(center), m_radius(radius) {}
+    Sphere(const vec3& center, float radius, const Ref<Material>& material) : m_center(center), m_radius(radius), m_material(material) {}
 
     HitRecord hit(const Ray& ray, Interval<float> tInterval) const override {
         auto a = glm::length2(ray.direction());
@@ -28,6 +29,7 @@ public:
         hit.point = ray.at(t);
         auto outwardNormal = (ray.at(t) - m_center) / m_radius;
         hit.setFaceNormal(ray, outwardNormal);
+        hit.material = m_material;
 
         return hit;
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IHittable.h"
+#include "Material.h"
 
 class Camera {
 public:
@@ -56,8 +57,12 @@ private:
 
         auto hit = world.hit(ray, {0.001f, std::numeric_limits<float>::infinity()});
         if (hit.hit) {
-            auto direction = hit.normal + randomVecOnHemisphere(hit.normal);
-            return 0.5f * rayColor(Ray(hit.point, direction), bounces - 1, world);
+            Ray scattered;
+            vec3 attenuation;
+            if (!hit.material->scatter(ray, hit, attenuation, scattered))
+                return vec3(0);
+
+            return attenuation * rayColor(scattered, bounces - 1, world);
         }
 
         // background
