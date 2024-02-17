@@ -12,25 +12,53 @@ constexpr double PI = glm::pi<double>();
 constexpr double TWO_PI = glm::two_pi<double>();
 constexpr double HALF_PI = glm::half_pi<double>();
 
-using vec2 = glm::vec2;
-using dvec2 = glm::dvec2;
-using ivec2 = glm::ivec2;
-using uvec2 = glm::uvec2;
-using vec3 = glm::vec3;
-using dvec3 = glm::dvec3;
-using ivec3 = glm::ivec3;
-using uvec3 = glm::uvec3;
-using vec4 = glm::vec4;
-using dvec4 = glm::dvec4;
-using ivec4 = glm::ivec4;
-using uvec4 = glm::uvec4;
-using mat2 = glm::mat2;
-using mat3 = glm::mat3;
-using mat4 = glm::mat4;
-using quat = glm::quat;
+using glm::dvec2;
+using glm::dvec3;
+using glm::dvec4;
+using glm::ivec2;
+using glm::ivec3;
+using glm::ivec4;
+using glm::mat2;
+using glm::mat3;
+using glm::mat4;
+using glm::quat;
+using glm::uvec2;
+using glm::uvec3;
+using glm::uvec4;
+using glm::vec2;
+using glm::vec3;
+using glm::vec4;
 
+/*
+ * @param v The incoming vector
+ * @param normal The normal vector
+ */
 constexpr inline vec3 reflect(const vec3& v, const vec3& normal) {
     return v - 2.0f * glm::dot(v, normal) * normal;
+}
+
+/*
+ * @param v The incoming vector, normalized
+ * @param normal The normal vector, normalized
+ * @param refractionRatio The ratio of the incoming to outgoing refractive indices
+ */
+inline vec3 refract(const vec3& v, const vec3& normal, float refractionRatio) {
+    // Snell's law
+    auto cosTheta = std::min(glm::dot(-v, normal), 1.0f);
+    auto outgoingPerpendicular = refractionRatio * (v + cosTheta * normal);
+    auto outgoingParallel = -std::sqrt(std::abs(1.0f - glm::length2(outgoingPerpendicular))) * normal;
+    return outgoingPerpendicular + outgoingParallel;
+};
+
+/*
+ * @param cosine The cosine of the angle between the incident ray and the normal
+ * @param refractionRatio The ratio of the incoming to outgoing refractive indices
+ */
+inline float reflectance(float cosine, float refractionRatio) {
+    // schlick's reflectance approximation
+    auto r0 = (1 - refractionRatio) / (1 + refractionRatio);
+    r0 *= r0;
+    return r0 + (1 - r0) * std::pow((1 - cosine), 5);
 }
 
 template <typename T>

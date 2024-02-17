@@ -21,8 +21,11 @@ public:
 
         auto t = (-halfB - sqrt(discriminant)) / a;
 
-        if (!tInterval.surrounds(t))
-            return HitRecord();
+        if (!tInterval.surrounds(t)) {
+            t = (-halfB + sqrt(discriminant)) / a;
+            if (!tInterval.surrounds(t))
+                return HitRecord();
+        }
 
         HitRecord hit{true};
         hit.t = t;

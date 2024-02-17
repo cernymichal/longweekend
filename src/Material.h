@@ -37,10 +37,37 @@ public:
     MetalMaterial(const vec3& albedo, float fuzziness) : m_albedo(albedo), m_fuzziness(fuzziness) {}
 
     virtual bool scatter(const Ray& ray, const HitRecord& hit, vec3& attenuation, Ray& scattered) const override {
-        auto reflected = reflect(normalize(ray.direction()), hit.normal);
+        auto reflected = reflect(glm::normalize(ray.direction()), hit.normal);
         reflected += m_fuzziness * randomUnitVec3();
         scattered = Ray(hit.point, reflected);
         attenuation = m_albedo;
         return glm::dot(reflected, hit.normal) > 0;
+    }
+};
+
+class DielectricMaterial : public Material {
+public:
+    float m_ir;
+
+    DielectricMaterial(float ir) : m_ir(ir) {}
+
+    virtual bool scatter(const Ray& ray, const HitRecord& hit, vec3& attenuation, Ray& scattered) const override {
+        auto normalizedDirection = glm::normalize(ray.direction());
+        auto refractionRatio = hit.frontFace ? 1.0f / m_ir : m_ir;
+
+        auto cosTheta = std::min(glm::dot(-normalizedDirection, hit.normal), 1.0f);
+        auto sinTheta = std::sqrt(1.0f - cosTheta * cosTheta);
+
+        vec3 outgoingDirection;
+
+        bool totalInternalReflection = refractionRatio * sinTheta > 1.0f;
+        if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > randomFloat())
+            outgoingDirection = reflect(normalizedDirection, hit.normal);
+        else
+            outgoingDirection = ::refract(normalizedDirection, hit.normal, refractionRatio);
+
+        attenuation = vec3(1);
+        scattered = Ray(hit.point, outgoingDirection);
+        return true;
     }
 };

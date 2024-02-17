@@ -6,7 +6,7 @@
 class Camera {
 public:
     glm::uvec2 m_imageSize = glm::uvec2(256, 256);
-    float m_focalLength = 1.0f;
+    float m_fov = 90.0f;
     vec3 m_cameraCenter = vec3(0);
 
     unsigned m_samples = 4;
@@ -17,8 +17,9 @@ public:
         initialize();
         LOG(std::format("rendering image {0}x{1}", m_imageSize.x, m_imageSize.y));
 
+#pragma omp parallel for
         for (size_t y = 0; y < m_imageSize.y; y++) {
-            LOG(std::format("{:.1f}% done", y * 100.0 / m_imageSize.y));
+            // LOG(std::format("{:.1f}% done", y * 100.0 / m_imageSize.y));
 
             for (size_t x = 0; x < m_imageSize.x; x++) {
                 auto pixelCenter = m_pixelGridOrigin + vec3(vec2(x, y) * m_pixelDelta, 0);
@@ -39,16 +40,17 @@ public:
     }
 
 private:
-    float m_aspectRatio;
-    vec2 m_viewportSize;
-    vec2 m_pixelDelta;
-    vec3 m_pixelGridOrigin;
+    vec2 m_viewportSize = vec2(1);
+    vec2 m_pixelDelta = vec2(1);
+    vec3 m_pixelGridOrigin = vec3(0);
 
     void initialize() {
-        m_aspectRatio = static_cast<float>(m_imageSize.x) / m_imageSize.y;
-        m_viewportSize = vec2(m_aspectRatio, 1) * 2.0f;
+        auto focalLength = 1.0f;
+        auto aspectRatio = static_cast<float>(m_imageSize.x) / m_imageSize.y;
+
+        m_viewportSize = vec2(aspectRatio, 1) * 2.0f * focalLength * glm::tan(glm::radians(m_fov / 2.0f));
         m_pixelDelta = m_viewportSize / vec2(m_imageSize) * vec2(1, -1);
-        m_pixelGridOrigin = m_cameraCenter - vec3(0, 0, m_focalLength) + vec3(-m_viewportSize.x, m_viewportSize.y, 0) / 2.0f + vec3(m_pixelDelta / 2.0f, 0);
+        m_pixelGridOrigin = m_cameraCenter - vec3(0, 0, focalLength) + vec3(-m_viewportSize.x, m_viewportSize.y, 0) / 2.0f + vec3(m_pixelDelta / 2.0f, 0);
     }
 
     vec3 rayColor(const Ray& ray, int bounces, const IHittable& world) const {
