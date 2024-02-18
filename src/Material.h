@@ -61,7 +61,7 @@ public:
         vec3 outgoingDirection;
 
         bool totalInternalReflection = refractionRatio * sinTheta > 1.0f;
-        if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > randomFloat())
+        if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > random<float>())
             outgoingDirection = reflect(normalizedDirection, hit.normal);
         else
             outgoingDirection = ::refract(normalizedDirection, hit.normal, refractionRatio);

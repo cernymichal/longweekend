@@ -111,108 +111,64 @@ private:
     }
 };
 
-inline Xoshiro256SS RANDOM_GENERATOR;
-
-// TODO templates
-
-/*
- * @return A random uint64.
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline uint64_t randomUInt64() {
-    return RANDOM_GENERATOR();
-}
+inline thread_local Xoshiro256SS RANDOM_GENERATOR;
 
 /*
  * @param min The minimum value of the range.
  * @param max The maximum value of the range.
- * @return A random int32 in the range [min, max).
+ * @return A random T in the range [min, max).
  *
  * @note Uses RANDOM_GENERATOR internally.
  */
-inline int32_t randomInt(int32_t min, int32_t max) {
-    std::uniform_int_distribution<int32_t> distribution(min, max);
-    return distribution(RANDOM_GENERATOR);
+template <typename T>
+inline T random(T min, T max) {
+    if constexpr (std::is_floating_point_v<T>)
+        return min + (max - min) * static_cast<T>(RANDOM_GENERATOR()) / static_cast<T>(RANDOM_GENERATOR.max());
+    else
+        return min + RANDOM_GENERATOR() % (max - min);
 }
 
 /*
- * @param min The minimum value of the range.
- * @param max The maximum value of the range.
- * @return A random float in the range [min, max).
+ * @return A random value of T or a floating-point number in the range [0, 1).
  *
  * @note Uses RANDOM_GENERATOR internally.
  */
-inline float randomFloat(float min, float max) {
-    std::uniform_real_distribution<float> distribution(min, max);
-    return distribution(RANDOM_GENERATOR);
-}
-
-/*
- * @return A random float in the range [0, 1).
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline float randomFloat() {
-    return randomFloat(0.0f, 1.0f);
-}
-
-/*
- * @param min The minimum value of the range.
- * @param max The maximum value of the range.
- * @return A random double in the range [min, max).
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline double randomDouble(double min, double max) {
-    std::uniform_real_distribution<double> distribution(min, max);
-    return distribution(RANDOM_GENERATOR);
-}
-
-/*
- * @return A random double in the range [0, 1).
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline double randomDouble() {
-    return randomDouble(0.0, 1.0);
-}
-
-/*
- * @param min The minimum value of the range.
- * @param max The maximum value of the range.
- * @return A random vec3 with components in the range [min, max).
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline vec3 randomVec3(float min, float max) {
-    return vec3(randomFloat(min, max), randomFloat(min, max), randomFloat(min, max));
-}
-
-/*
- * @return A random vec3 with components in the range [0, 1).
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline vec3 randomVec3() {
-    return randomVec3(0.0f, 1.0f);
-}
-
-/*
- * @return A random vec3 contained in a unit sphere.
- *
- * @note Uses RANDOM_GENERATOR internally.
- */
-inline vec3 randomVecInUnitSphere() {
-    // TODO make faster?
-
-    while (true) {
-        vec3 v = randomVec3(-1.0f, 1.0f);
-        if (glm::length2(v) > 1.0f)
-            continue;
-
-        return v;
+template <typename T>
+inline T random() {
+    if constexpr (std::is_floating_point_v<T>)
+        return random<T>(0, 1);
+    else if constexpr (std::is_same_v<T, bool>)
+        return RANDOM_GENERATOR() & 1;
+    else {
+        auto value = RANDOM_GENERATOR();
+        return *reinterpret_cast<T*>(&value);
     }
+}
+
+// Random vectors
+
+/*
+ * @return A random vector with values in the range in the range [min, max).
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+template <int L, typename T = float>
+inline glm::vec<L, T> randomVec(const glm::vec<L, T>& min, const glm::vec<L, T>& max) {
+    glm::vec<L, T> result;
+    for (int i = 0; i < L; i++)
+        result[i] = random<T>(min[i], max[i]);
+
+    return result;
+}
+
+/*
+ * @return A random vector with values in the range in the range [0, 1).
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+template <int L, typename T = float>
+inline glm::vec<L, T> randomVec() {
+    return randomVec<L, T>(glm::vec<L, T>(0), glm::vec<L, T>(1));
 }
 
 /*
@@ -221,7 +177,13 @@ inline vec3 randomVecInUnitSphere() {
  * @note Uses RANDOM_GENERATOR internally.
  */
 inline vec3 randomUnitVec3() {
-    return glm::normalize(randomVecInUnitSphere());
+    // TODO faster?
+
+    while (true) {
+        vec3 v = randomVec<3>(vec3(-1.0f), vec3(1.0f));
+        if (glm::length2(v) <= 1.0f)
+            return glm::normalize(v);
+    }
 }
 
 /*

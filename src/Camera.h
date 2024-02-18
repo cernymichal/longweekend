@@ -6,12 +6,14 @@
 class Camera {
 public:
     glm::uvec2 m_imageSize = glm::uvec2(256, 256);
-    float m_fov = 90.0f;
-    vec3 m_cameraCenter = vec3(0);
-
     unsigned m_samples = 4;
     unsigned m_maxBounces = 10;
     float m_gamma = 2.2f;
+
+    float m_fov = 90.0f;
+    vec3 m_position = vec3(0);
+    vec3 m_lookAt = vec3(0, 0, -1);
+    vec3 m_up = vec3(0, 1, 0);
 
     void render(const IHittable& world, std::vector<glm::u8vec3>& target) {
         initialize();
@@ -22,13 +24,13 @@ public:
             // LOG(std::format("{:.1f}% done", y * 100.0 / m_imageSize.y));
 
             for (size_t x = 0; x < m_imageSize.x; x++) {
-                auto pixelCenter = m_pixelGridOrigin + vec3(vec2(x, y) * m_pixelDelta, 0);
+                auto pixelCenter = m_pixelGridOrigin + static_cast<float>(x) * m_pixelDeltaU + static_cast<float>(y) * m_pixelDeltaV;
                 auto color = vec3(0);
 
                 for (unsigned i = 0; i < m_samples; i++) {
-                    auto jitter = vec2(randomFloat(), randomFloat()) - 0.5f;
-                    auto pixelSamplePoint = pixelCenter + vec3(jitter * m_pixelDelta, 0);
-                    Ray ray(m_cameraCenter, pixelSamplePoint - m_cameraCenter);
+                    auto jitter = randomVec<2>() - 0.5f;
+                    auto pixelSamplePoint = pixelCenter + jitter.x * m_pixelDeltaU + jitter.y * m_pixelDeltaU;
+                    Ray ray(m_position, pixelSamplePoint - m_position);
 
                     color += rayColor(ray, m_maxBounces, world);
                 }
@@ -41,16 +43,26 @@ public:
 
 private:
     vec2 m_viewportSize = vec2(1);
-    vec2 m_pixelDelta = vec2(1);
+    vec3 m_pixelDeltaU = vec3(0);
+    vec3 m_pixelDeltaV = vec3(0);
     vec3 m_pixelGridOrigin = vec3(0);
 
     void initialize() {
         auto focalLength = 1.0f;
         auto aspectRatio = static_cast<float>(m_imageSize.x) / m_imageSize.y;
-
         m_viewportSize = vec2(aspectRatio, 1) * 2.0f * focalLength * glm::tan(glm::radians(m_fov / 2.0f));
-        m_pixelDelta = m_viewportSize / vec2(m_imageSize) * vec2(1, -1);
-        m_pixelGridOrigin = m_cameraCenter - vec3(0, 0, focalLength) + vec3(-m_viewportSize.x, m_viewportSize.y, 0) / 2.0f + vec3(m_pixelDelta / 2.0f, 0);
+
+        vec3 u, v, w;
+        w = glm::normalize(m_position - m_lookAt);
+        u = glm::normalize(glm::cross(m_up, w));
+        v = glm::cross(w, u);
+
+        vec3 viewportU, viewportV;
+        viewportU = u * m_viewportSize.x;
+        viewportV = -v * m_viewportSize.y;
+        m_pixelDeltaU = viewportU / static_cast<float>(m_imageSize.x);
+        m_pixelDeltaV = viewportV / static_cast<float>(m_imageSize.y);
+        m_pixelGridOrigin = m_position - focalLength * w - viewportU / 2.0f - viewportV / 2.0f + m_pixelDeltaU / 2.0f + m_pixelDeltaV / 2.0f;
     }
 
     vec3 rayColor(const Ray& ray, int bounces, const IHittable& world) const {
