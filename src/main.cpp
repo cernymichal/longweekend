@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     camera.render(world, framebuffer);
     auto stop = std::chrono::high_resolution_clock::now();
 
-    LOG(std::format("Time taken: {:.2}s", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0));
+    LOG(std::format("Time taken: {:.2f}s", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0));
 
     // output image
     stbi_write_bmp(OUTPUT_FILENAME, camera.m_imageSize.x, camera.m_imageSize.y, 3, framebuffer.data());

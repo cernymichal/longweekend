@@ -145,6 +145,36 @@ inline T random() {
     }
 }
 
+/*
+ * @return A random value from a normal distribution N(0, 1).
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+template <typename T>
+inline T randomNormal() {
+    // https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+    // faster than ratio of uniforms :( but ziggurat might be faster
+
+    thread_local std::pair<T, bool> cache(0, false);  // {cached value, valid}
+    if (cache.second) {
+        cache.second = false;
+        return cache.first;
+    }
+
+    double u1, u2;
+    do {
+        u1 = random<T>();
+    } while (u1 == 0);
+    u2 = random<T>();
+
+    auto mag = 1 * sqrt(-2.0 * log(u1));
+    auto z0 = mag * cos(TWO_PI * u2);
+    auto z1 = mag * sin(TWO_PI * u2);
+
+    cache = {z1, true};
+    return z0;
+}
+
 // Random vectors
 
 /*
@@ -177,11 +207,11 @@ inline glm::vec<L, T> randomVec() {
  * @note Uses RANDOM_GENERATOR internally.
  */
 inline vec3 randomUnitVec3() {
-    // TODO faster?
+    // faster than sampling a gaussian distribution and normalizing - tested with box-muller transform
 
     while (true) {
-        vec3 v = randomVec<3>(vec3(-1.0f), vec3(1.0f));
-        if (glm::length2(v) <= 1.0f)
+        vec3 v = randomVec<3>(vec3(-1), vec3(1));
+        if (glm::length2(v) <= 1.0)
             return glm::normalize(v);
     }
 }
