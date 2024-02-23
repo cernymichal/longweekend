@@ -225,3 +225,16 @@ inline vec3 randomVecOnHemisphere(const vec3& normal) {
     auto v = randomUnitVec3();
     return glm::dot(v, normal) >= 0.0f ? v : -v;
 }
+
+/*
+ * @return A random unit vec3 in a disk in the xy plane.
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec3 randomInUnitDisk() {
+    while (true) {
+        auto p = randomVec<2>(vec2(-1), vec2(1));
+        if (glm::length2(p) <= 1.0)
+            return vec3(p, 0);
+    }
+}

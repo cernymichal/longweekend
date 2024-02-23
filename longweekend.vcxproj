@@ -215,12 +215,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\HittableGroup.h" />
     <ClInclude Include="src\IHittable.h" />
     <ClInclude Include="src\Material.h" />
+    <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\Utils\Log.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Ray.h" />
