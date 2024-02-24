@@ -95,11 +95,10 @@ private:
         auto unitDirection = normalize(ray.direction());
 
         if (m_environment) {
-            float u = 0.5f * (1.0f + atan2(unitDirection.z, unitDirection.x) / PI) * m_environment->size.x;
-            float v = 0.5f * (1.0f - asin(unitDirection.y) / PI) * m_environment->size.y;
-            u = glm::clamp(u, 0.0f, m_environment->size.x - 1.0f);
-            v = glm::clamp(v, 0.0f, m_environment->size.y - 1.0f);
-            return m_environment->data[static_cast<unsigned>(v) * m_environment->size.x + static_cast<unsigned>(u)];
+            auto u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5;
+            auto v = acos(unitDirection.y) / PI;
+            auto i = static_cast<size_t>(v * m_environment->size.y) * m_environment->size.x + static_cast<size_t>(u * m_environment->size.x);
+            return m_environment->data[i];
         }
 
         return glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f));

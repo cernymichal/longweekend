@@ -8,7 +8,7 @@
 
 constexpr auto OUTPUT_FILENAME = "output.bmp";
 
-int main(int argc, char** argv) {
+void render() {
     // camera
     Camera camera;
     camera.m_position = vec3(-2, .2, 1);
@@ -18,9 +18,9 @@ int main(int argc, char** argv) {
     camera.m_focusDistance = glm::length(camera.m_position - camera.m_lookAt);
     camera.m_imageSize = uvec2(640, 480);
     camera.m_samples = 128;
-    camera.m_maxBounces = 16;
+    camera.m_maxBounces = 32;
 
-    camera.m_environment = makeRef<Texture>("resources/evening_field_2k.hdr");
+    camera.m_environment = makeRef<Texture>("resources/evening_field_4k.hdr");
 
     // world
     HittableGroup world;
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     camera.m_samples = 128;
     camera.m_maxBounces = 32;
 
-    camera.m_environment = makeRef<Texture>("resources/evening_field_2k.hdr");
+    camera.m_environment = makeRef<Texture>("resources/evening_field_4k.hdr");
     */
 
     // render
@@ -106,6 +106,9 @@ int main(int argc, char** argv) {
     // output image
     stbi_write_bmp(OUTPUT_FILENAME, camera.m_imageSize.x, camera.m_imageSize.y, 3, framebuffer.data());
     LOG("image written");
+}
 
+int main(int argc, char** argv) {
+    render();
     return EXIT_SUCCESS;
 }
