@@ -17,10 +17,10 @@ public:
     LambertianMaterial(const vec3& albedo) : m_albedo(albedo) {}
 
     virtual bool scatter(const Ray& ray, const HitRecord& hit, vec3& attenuation, Ray& scattered) const override {
-        auto scatterDirection = hit.normal + randomUnitVec3();
+        auto scatterDirection = hit.normal + randomUnitVec<3>();
 
         // near zero direction fix
-        if (glm::any(glm::lessThan(glm::abs(scatterDirection), vec3(1e-8f))))
+        if (glm::any(glm::abs(scatterDirection) < vec3(1e-8f)))
             scatterDirection = hit.normal;
 
         scattered = Ray(hit.point, scatterDirection);
@@ -32,13 +32,13 @@ public:
 class MetalMaterial : public Material {
 public:
     vec3 m_albedo;
-    float m_fuzziness;
+    f32 m_fuzziness;
 
-    MetalMaterial(const vec3& albedo, float fuzziness) : m_albedo(albedo), m_fuzziness(fuzziness) {}
+    MetalMaterial(const vec3& albedo, f32 fuzziness) : m_albedo(albedo), m_fuzziness(fuzziness) {}
 
     virtual bool scatter(const Ray& ray, const HitRecord& hit, vec3& attenuation, Ray& scattered) const override {
         auto reflected = reflect(glm::normalize(ray.direction()), hit.normal);
-        reflected += m_fuzziness * randomUnitVec3();
+        reflected += m_fuzziness * randomUnitVec<3>();
         scattered = Ray(hit.point, reflected);
         attenuation = m_albedo;
         return glm::dot(reflected, hit.normal) > 0;
@@ -47,9 +47,9 @@ public:
 
 class DielectricMaterial : public Material {
 public:
-    float m_ir;
+    f32 m_ir;
 
-    DielectricMaterial(float ir) : m_ir(ir) {}
+    DielectricMaterial(f32 ir) : m_ir(ir) {}
 
     virtual bool scatter(const Ray& ray, const HitRecord& hit, vec3& attenuation, Ray& scattered) const override {
         auto normalizedDirection = glm::normalize(ray.direction());
@@ -61,7 +61,7 @@ public:
         vec3 outgoingDirection;
 
         bool totalInternalReflection = refractionRatio * sinTheta > 1.0f;
-        if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > random<float>())
+        if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > random<f32>())
             outgoingDirection = reflect(normalizedDirection, hit.normal);
         else
             outgoingDirection = ::refract(normalizedDirection, hit.normal, refractionRatio);

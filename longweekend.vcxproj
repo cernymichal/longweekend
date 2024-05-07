@@ -230,6 +230,7 @@
     <ClInclude Include="src\Utils\Math.h" />
     <ClInclude Include="src\Utils\Ptr.h" />
     <ClInclude Include="src\Utils\Random.h" />
+    <ClInclude Include="src\Utils\Scalars.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

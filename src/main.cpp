@@ -43,10 +43,10 @@ void render() {
     auto ground_material = makeRef<LambertianMaterial>(vec3(0.5, 0.5, 0.5));
     world.add(makeRef<Sphere>(vec3(0, -1000, 0), 1000, ground_material));
 
-    for (int a = -11; a < 11; a++) {
-        for (int b = -11; b < 11; b++) {
-            auto choose_mat = random<double>();
-            vec3 center(a + 0.9 * random<double>(), 0.2, b + 0.9 * random<double>());
+    for (i32 a = -11; a < 11; a++) {
+        for (i32 b = -11; b < 11; b++) {
+            auto choose_mat = random<f64>();
+            vec3 center(a + 0.9 * random<f64>(), 0.2, b + 0.9 * random<f64>());
 
             if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
                 Ref<Material> sphere_material;
@@ -60,7 +60,7 @@ void render() {
                 else if (choose_mat < 0.95) {
                     // metal
                     auto albedo = randomVec<3>(vec3(0.5), vec3(1));
-                    auto fuzz = random<double>(0, 0.5);
+                    auto fuzz = random<f64>(0, 0.5);
                     sphere_material = makeRef<MetalMaterial>(albedo, fuzz);
                     world.add(makeRef<Sphere>(center, 0.2, sphere_material));
                 }
@@ -108,7 +108,7 @@ void render() {
     LOG("image written");
 }
 
-int main(int argc, char** argv) {
+i32 main(i32 argc, char** argv) {
     render();
     return EXIT_SUCCESS;
 }

@@ -16,7 +16,7 @@ public:
         m_hittables.clear();
     }
 
-    HitRecord hit(const Ray& ray, Interval<float> tInterval) const override {
+    HitRecord hit(const Ray& ray, Interval<f32> tInterval) const override {
         HitRecord closestHit;
         closestHit.t = tInterval.max;
 

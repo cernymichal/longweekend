@@ -7,17 +7,17 @@
 class Camera {
 public:
     glm::uvec2 m_imageSize = glm::uvec2(256, 256);
-    unsigned m_samples = 4;
-    unsigned m_maxBounces = 10;
-    float m_gamma = 2.2f;
+    u32 m_samples = 4;
+    u32 m_maxBounces = 10;
+    f32 m_gamma = 2.2f;
 
-    float m_fov = 90.0f;
+    f32 m_fov = 90.0f;
     vec3 m_position = vec3(0);
     vec3 m_lookAt = vec3(0, 0, -1);
     vec3 m_up = vec3(0, 1, 0);
 
-    float m_defocusAngle = 0.0f;
-    float m_focusDistance = 10.0f;
+    f32 m_defocusAngle = 0.0f;
+    f32 m_focusDistance = 10.0f;
 
     Ref<Texture> m_environment;
 
@@ -30,10 +30,10 @@ public:
             // LOG(std::format("{:.1f}% done", y * 100.0 / m_imageSize.y));
 
             for (size_t x = 0; x < m_imageSize.x; x++) {
-                auto pixelCenter = m_pixelGridOrigin + static_cast<float>(x) * m_pixelDeltaU + static_cast<float>(y) * m_pixelDeltaV;
+                auto pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
                 auto color = vec3(0);
 
-                for (unsigned i = 0; i < m_samples; i++) {
+                for (u32 i = 0; i < m_samples; i++) {
                     auto jitter = randomVec<2>() - 0.5f;
                     auto pixelSamplePoint = pixelCenter + jitter.x * m_pixelDeltaU + jitter.y * m_pixelDeltaU;
                     auto rayOrigin = m_defocusAngle > 0 ? randomInDefocusDisk() : m_position;
@@ -57,7 +57,7 @@ private:
     vec3 m_defocusDiskV = vec3(0);
 
     void initialize() {
-        auto aspectRatio = static_cast<float>(m_imageSize.x) / m_imageSize.y;
+        auto aspectRatio = static_cast<f32>(m_imageSize.x) / m_imageSize.y;
         m_viewportSize = vec2(aspectRatio, 1) * 2.0f * m_focusDistance * glm::tan(glm::radians(m_fov / 2.0f));
 
         vec3 u, v, w;
@@ -68,8 +68,8 @@ private:
         vec3 viewportU, viewportV;
         viewportU = u * m_viewportSize.x;
         viewportV = -v * m_viewportSize.y;
-        m_pixelDeltaU = viewportU / static_cast<float>(m_imageSize.x);
-        m_pixelDeltaV = viewportV / static_cast<float>(m_imageSize.y);
+        m_pixelDeltaU = viewportU / static_cast<f32>(m_imageSize.x);
+        m_pixelDeltaV = viewportV / static_cast<f32>(m_imageSize.y);
         m_pixelGridOrigin = m_position - m_focusDistance * w - viewportU / 2.0f - viewportV / 2.0f + m_pixelDeltaU / 2.0f + m_pixelDeltaV / 2.0f;
 
         auto defocusRadius = m_focusDistance * tan(glm::radians(m_defocusAngle / 2));
@@ -77,11 +77,11 @@ private:
         m_defocusDiskV = defocusRadius * v;
     }
 
-    vec3 rayColor(const Ray& ray, int bounces, const IHittable& world) const {
+    vec3 rayColor(const Ray& ray, i32 bounces, const IHittable& world) const {
         if (bounces < 0)
             return vec3(0);
 
-        auto hit = world.hit(ray, {0.001f, std::numeric_limits<float>::infinity()});
+        auto hit = world.hit(ray, {0.001f, std::numeric_limits<f32>::infinity()});
         if (hit.hit) {
             Ray scattered;
             vec3 attenuation;
@@ -105,12 +105,12 @@ private:
     }
 
     vec3 randomInDefocusDisk() const {
-        auto r = randomInUnitDisk();
+        auto r = randomVec2InUnitDisk();
         return m_position + m_defocusDiskU * r.x + m_defocusDiskV * r.y;
     }
 
     glm::u8vec3 rgbfromAccumulator(const vec3& color) const {
-        auto output = color / static_cast<float>(m_samples);  // average samples
+        auto output = color / static_cast<f32>(m_samples);  // average samples
         output = acesApproximation(output);                   // tone mapping
         output = glm::pow(output, vec3(1.0f / m_gamma));      // gamma correction
         output = glm::clamp(output, vec3(0), vec3(1));        // clamp to [0, 1]
@@ -120,11 +120,11 @@ private:
     // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
     static vec3 acesApproximation(vec3 color) {
         color *= 0.6f;
-        float a = 2.51f;
-        float b = 0.03f;
-        float c = 2.43f;
-        float d = 0.59f;
-        float e = 0.14f;
+        f32 a = 2.51f;
+        f32 b = 0.03f;
+        f32 c = 2.43f;
+        f32 d = 0.59f;
+        f32 e = 0.14f;
         return glm::clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0f, 1.0f);
     }
 };

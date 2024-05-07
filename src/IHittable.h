@@ -6,7 +6,7 @@ class Material;
 
 struct HitRecord {
     bool hit = false;
-    float t = 0.0f;
+    f32 t = 0.0f;
     vec3 point = vec3(0);
     vec3 normal = vec3(0);
     bool frontFace = false;
@@ -22,5 +22,5 @@ struct HitRecord {
 
 class IHittable {
 public:
-    virtual HitRecord hit(const Ray& ray, Interval<float> tInterval) const = 0;
+    virtual HitRecord hit(const Ray& ray, Interval<f32> tInterval) const = 0;
 };

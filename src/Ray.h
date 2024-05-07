@@ -10,7 +10,7 @@ public:
 
     const vec3& direction() const { return m_direction; }
 
-    vec3 at(float t) const { return m_origin + t * m_direction; }
+    vec3 at(f32 t) const { return m_origin + t * m_direction; }
 
 private:
     vec3 m_origin;

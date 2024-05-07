@@ -7,7 +7,7 @@
 Texture::Texture(const std::filesystem::path& filePath) {
     LOG("Loading image " << filePath);
 
-    int channels;
+    i32 channels;
     ivec2 sizeInt;
 
     const auto filePathStr = filePath.string();
