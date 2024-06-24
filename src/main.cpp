@@ -1,8 +1,8 @@
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
-
 #include "Camera.h"
 #include "HittableGroup.h"
+#include "IO/TextureIO.h"
+#include "IO/MeshIO.h"
+#include "Postprocessing.h"
 #include "Sphere.h"
 #include "Texture.h"
 
@@ -20,7 +20,7 @@ void render() {
     camera.m_samples = 128;
     camera.m_maxBounces = 32;
 
-    camera.m_environment = makeRef<Texture>("resources/evening_field_4k.hdr");
+    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_4k.hdr"));
 
     // world
     HittableGroup world;
@@ -35,6 +35,13 @@ void render() {
     world.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), 0.5f, leftMaterial));
     world.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), -0.4f, leftMaterial));
     world.add(makeRef<Sphere>(vec3(1.0, 0.0, -1), 0.5f, rightMaterial));
+
+    /*
+    auto teapot = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
+    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.8));
+
+    world.add(teapot);
+    */
 
     // random spheres
     /*
@@ -96,15 +103,19 @@ void render() {
     */
 
     // render
-    std::vector<glm::u8vec3> framebuffer(camera.m_imageSize.x * camera.m_imageSize.y);
+    Texture<vec3> framebuffer(camera.m_imageSize);
     auto start = std::chrono::high_resolution_clock::now();
     camera.render(world, framebuffer);
     auto stop = std::chrono::high_resolution_clock::now();
 
     LOG(std::format("Time taken: {:.2f}s", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0));
 
+    // postprocessing
+    Texture<u8vec3> frameSRGB = hdrToSRGB(framebuffer);
+
     // output image
-    stbi_write_bmp(OUTPUT_FILENAME, camera.m_imageSize.x, camera.m_imageSize.y, 3, framebuffer.data());
+    writeBMP(OUTPUT_FILENAME, frameSRGB);
+
     LOG("image written");
 }
 

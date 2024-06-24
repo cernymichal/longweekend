@@ -9,7 +9,6 @@ public:
     glm::uvec2 m_imageSize = glm::uvec2(256, 256);
     u32 m_samples = 4;
     u32 m_maxBounces = 10;
-    f32 m_gamma = 2.2f;
 
     f32 m_fov = 90.0f;
     vec3 m_position = vec3(0);
@@ -19,17 +18,17 @@ public:
     f32 m_defocusAngle = 0.0f;
     f32 m_focusDistance = 10.0f;
 
-    Ref<Texture> m_environment;
+    Ref<Texture<vec3>> m_environment;
 
-    void render(const IHittable& world, std::vector<glm::u8vec3>& target) {
+    void render(const IHittable& world, Texture<vec3>& target) {
         initialize();
         LOG(std::format("rendering image {0}x{1}", m_imageSize.x, m_imageSize.y));
 
 #pragma omp parallel for
-        for (size_t y = 0; y < m_imageSize.y; y++) {
+        for (u32 y = 0; y < m_imageSize.y; y++) {
             // LOG(std::format("{:.1f}% done", y * 100.0 / m_imageSize.y));
 
-            for (size_t x = 0; x < m_imageSize.x; x++) {
+            for (u32 x = 0; x < m_imageSize.x; x++) {
                 auto pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
                 auto color = vec3(0);
 
@@ -42,7 +41,7 @@ public:
                     color += rayColor(ray, m_maxBounces, world);
                 }
 
-                target[y * m_imageSize.x + x] = rgbfromAccumulator(color);
+                target[uvec2(x, y)] = color / static_cast<f32>(m_samples);
             }
         }
         LOG("100% done");
@@ -95,10 +94,9 @@ private:
         auto unitDirection = normalize(ray.direction());
 
         if (m_environment) {
-            auto u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5;
-            auto v = acos(unitDirection.y) / PI;
-            auto i = static_cast<size_t>(v * m_environment->size.y) * m_environment->size.x + static_cast<size_t>(u * m_environment->size.x);
-            return m_environment->data[i];
+            f32 u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5f;
+            f32 v = acos(unitDirection.y) / PI;
+            return m_environment->sampleI({u, v});
         }
 
         return glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f));
@@ -107,24 +105,5 @@ private:
     vec3 randomInDefocusDisk() const {
         auto r = randomVec2InUnitDisk();
         return m_position + m_defocusDiskU * r.x + m_defocusDiskV * r.y;
-    }
-
-    glm::u8vec3 rgbfromAccumulator(const vec3& color) const {
-        auto output = color / static_cast<f32>(m_samples);  // average samples
-        output = acesApproximation(output);                   // tone mapping
-        output = glm::pow(output, vec3(1.0f / m_gamma));      // gamma correction
-        output = glm::clamp(output, vec3(0), vec3(1));        // clamp to [0, 1]
-        return glm::u8vec3(output * 255.0f);                  // convert to 8-bit
-    }
-
-    // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-    static vec3 acesApproximation(vec3 color) {
-        color *= 0.6f;
-        f32 a = 2.51f;
-        f32 b = 0.03f;
-        f32 c = 2.43f;
-        f32 d = 0.59f;
-        f32 e = 0.14f;
-        return glm::clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0f, 1.0f);
     }
 };

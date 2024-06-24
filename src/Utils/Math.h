@@ -49,6 +49,7 @@ using glm::mat2;
 using glm::mat3;
 using glm::mat4;
 using glm::quat;
+using glm::u8vec3;
 using glm::uvec2;
 using glm::uvec3;
 using glm::uvec4;

@@ -12,7 +12,9 @@ public:
 
 class LambertianMaterial : public Material {
 public:
-    vec3 m_albedo;
+    vec3 m_albedo = vec3(0);
+
+    LambertianMaterial() = default;
 
     LambertianMaterial(const vec3& albedo) : m_albedo(albedo) {}
 
@@ -31,8 +33,10 @@ public:
 
 class MetalMaterial : public Material {
 public:
-    vec3 m_albedo;
-    f32 m_fuzziness;
+    vec3 m_albedo = vec3(0);
+    f32 m_fuzziness = 0;
+
+    MetalMaterial() = default;
 
     MetalMaterial(const vec3& albedo, f32 fuzziness) : m_albedo(albedo), m_fuzziness(fuzziness) {}
 
@@ -47,7 +51,9 @@ public:
 
 class DielectricMaterial : public Material {
 public:
-    f32 m_ir;
+    f32 m_ir = 1;
+
+    DielectricMaterial() = default;
 
     DielectricMaterial(f32 ir) : m_ir(ir) {}
 
