@@ -55,7 +55,7 @@ public:
     }
 
     const T& sampleI(const vec2& uv) const {
-        auto sampleUV = uv * vec2(m_size);
+        auto sampleUV = uv * vec2(m_size - uvec2(1));
 
         if (glm::all(glm::fract(sampleUV) <= vec2(0.001f)))
             return sample(uvec2(sampleUV));
@@ -71,38 +71,28 @@ public:
         return x0 * (1 - ty) + x1 * ty;
     }
 
-    const T& sample(const uvec2& uv) const {
+    inline const T& sample(const uvec2& uv) const {
         return m_data[uv.y * m_size.x + uv.x];
     }
 
-    T& sample(const uvec2& uv) {
+    inline T& sample(const uvec2& uv) {
         return m_data[uv.y * m_size.x + uv.x];
     }
 
-    const T& operator[](const uvec2& uv) const {
-        return sample(uv);
-    }
+    inline const T& operator[](const uvec2& uv) const { return sample(uv); }
 
-    T& operator[](const uvec2& uv) {
-        return sample(uv);
-    }
+    inline T& operator[](const uvec2& uv) { return sample(uv); }
 
-    void clear(const T& value) {
+    inline void clear(const T& value) {
         for (size_t i = 0; i < m_size.x * m_size.y; i++)
             m_data[i] = value;
     }
 
-    const uvec2& size() const {
-        return m_size;
-    }
+    inline const uvec2& size() const { return m_size; }
 
-    const u8& channels() const {
-        return m_channels;
-    }
+    inline const u8& channels() const { return m_channels; }
 
-    const T* data() const {
-        return m_data;
-    }
+    inline const T* data() const { return m_data; }
 
 private:
     uvec2 m_size = uvec2(0);

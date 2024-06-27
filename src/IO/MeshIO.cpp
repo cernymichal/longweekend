@@ -75,12 +75,12 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
                     tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
                     face.uvs[v] = vec2(tx, ty);
                 }
-                else // Set dummy UVs
+                else  // Set dummy UVs
                     face.uvs[v] = vec2(0);
             }
 
-            if (!hasNormals) // Calculate normals if they are not provided
-                face.normal = glm::normalize(glm::cross(face.vertices[1] - face.vertices[0], face.vertices[2] - face.vertices[0]));
+            // if (!hasNormals) // Calculate normals if they are not provided
+            face.normal = glm::normalize(glm::cross(face.vertices[1] - face.vertices[0], face.vertices[2] - face.vertices[0]));
 
             index_offset += fv;
         }

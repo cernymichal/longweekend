@@ -22,7 +22,7 @@ public:
 
     void render(const IHittable& world, Texture<vec3>& target) {
         initialize();
-        LOG(std::format("rendering image {0}x{1}", m_imageSize.x, m_imageSize.y));
+        LOG(std::format("Rendering image {0}x{1}", m_imageSize.x, m_imageSize.y));
 
 #pragma omp parallel for
         for (u32 y = 0; y < m_imageSize.y; y++) {
@@ -38,7 +38,7 @@ public:
                     auto rayOrigin = m_defocusAngle > 0 ? randomInDefocusDisk() : m_position;
                     Ray ray(rayOrigin, pixelSamplePoint - rayOrigin);
 
-                    color += rayColor(ray, m_maxBounces, world);
+                    color += rayColor(ray, world);
                 }
 
                 target[uvec2(x, y)] = color / static_cast<f32>(m_samples);
@@ -76,21 +76,28 @@ private:
         m_defocusDiskV = defocusRadius * v;
     }
 
-    vec3 rayColor(const Ray& ray, i32 bounces, const IHittable& world) const {
-        if (bounces < 0)
-            return vec3(0);
+    vec3 rayColor(Ray ray, const IHittable& world) const {
+        vec3 accumulator = vec3(1);
+        for (u32 i = 0; i <= m_maxBounces; i++) {
+            auto hit = world.hit(ray, {0.001f, std::numeric_limits<f32>::infinity()});
+            if (!hit.hit) {
+                accumulator *= sampleEnvironment(ray);
+                break;
+            }
 
-        auto hit = world.hit(ray, {0.001f, std::numeric_limits<f32>::infinity()});
-        if (hit.hit) {
             Ray scattered;
             vec3 attenuation;
             if (!hit.material->scatter(ray, hit, attenuation, scattered))
-                return vec3(0);
+                return vec3(0);  // absorbed
 
-            return attenuation * rayColor(scattered, bounces - 1, world);
+            ray = scattered;
+            accumulator *= attenuation;
         }
 
-        // environment
+        return accumulator;
+    }
+
+    vec3 sampleEnvironment(const Ray& ray) const {
         auto unitDirection = normalize(ray.direction());
 
         if (m_environment) {

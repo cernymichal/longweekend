@@ -1,30 +1,24 @@
 #include "Camera.h"
 #include "HittableGroup.h"
-#include "IO/TextureIO.h"
 #include "IO/MeshIO.h"
+#include "IO/TextureIO.h"
 #include "Postprocessing.h"
 #include "Sphere.h"
 #include "Texture.h"
 
 constexpr auto OUTPUT_FILENAME = "output.bmp";
 
-void render() {
+void sphereScene(HittableGroup& world, Camera& camera) {
     // camera
-    Camera camera;
     camera.m_position = vec3(-2, .2, 1);
     camera.m_lookAt = vec3(-.15, .4, -1);
     camera.m_fov = 60.0f;
     camera.m_defocusAngle = 3.0f;
     camera.m_focusDistance = glm::length(camera.m_position - camera.m_lookAt);
-    camera.m_imageSize = uvec2(640, 480);
-    camera.m_samples = 128;
-    camera.m_maxBounces = 32;
 
-    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_4k.hdr"));
+    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    HittableGroup world;
-
     auto groundMaterial = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.0));
     auto centerMaterial = makeRef<LambertianMaterial>(vec3(0.1, 0.2, 0.5));
     auto leftMaterial = makeRef<DielectricMaterial>(1.5f);
@@ -35,18 +29,19 @@ void render() {
     world.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), 0.5f, leftMaterial));
     world.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), -0.4f, leftMaterial));
     world.add(makeRef<Sphere>(vec3(1.0, 0.0, -1), 0.5f, rightMaterial));
+}
 
-    /*
-    auto teapot = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
-    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.8));
+void randomSphereScene(HittableGroup& world, Camera& camera) {
+    // camera
+    camera.m_position = vec3(13, 2, 3);
+    camera.m_lookAt = vec3(0, 0, 0);
+    camera.m_fov = 20.0f;
+    camera.m_defocusAngle = 0.6f;
+    camera.m_focusDistance = 10.0f;
 
-    world.add(teapot);
-    */
+    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
 
-    // random spheres
-    /*
-    HittableGroup world;
-
+    // world
     auto ground_material = makeRef<LambertianMaterial>(vec3(0.5, 0.5, 0.5));
     world.add(makeRef<Sphere>(vec3(0, -1000, 0), 1000, ground_material));
 
@@ -88,19 +83,54 @@ void render() {
 
     auto material3 = makeRef<MetalMaterial>(vec3(0.7, 0.6, 0.5), 0.0);
     world.add(makeRef<Sphere>(vec3(4, 1, 0), 1.0, material3));
+}
 
+void teapotScene(HittableGroup& world, Camera& camera) {
+    // camera
+    camera.m_position = vec3(0.07, 0.08, 0.13);
+    camera.m_lookAt = vec3(0.015, 0.035, 0.0);
+    camera.m_fov = 48.0f;
+    // camera.m_defocusAngle = 0.1f;
+    // camera.m_focusDistance = 0.15f;
+
+    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
+
+    // world
+    auto teapot = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
+    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.8));
+
+    world.add(teapot);
+}
+
+void tetrahedronScene(HittableGroup& world, Camera& camera) {
+    // camera
+    camera.m_position = vec3(-0.1, -0.3, 2);
+    camera.m_lookAt = vec3(0.3, 0.3, 0.3);
+    camera.m_fov = 40.0f;
+    // camera.m_defocusAngle = 0.6f;
+    // camera.m_focusDistance = 10.0f;
+
+    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
+
+    // world
+    auto teapot = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
+    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.8));
+
+    world.add(teapot);
+}
+
+void render() {
+    HittableGroup world;
     Camera camera;
-    camera.m_position = vec3(13, 2, 3);
-    camera.m_lookAt = vec3(0, 0, 0);
-    camera.m_fov = 20.0f;
-    camera.m_defocusAngle = 0.6f;
-    camera.m_focusDistance = 10.0f;
-    camera.m_imageSize = uvec2(1200, 675);
-    camera.m_samples = 128;
-    camera.m_maxBounces = 32;
 
-    camera.m_environment = makeRef<Texture>("resources/evening_field_4k.hdr");
-    */
+    camera.m_imageSize = uvec2(640, 480) / 4U;
+    camera.m_samples = 16;
+    camera.m_maxBounces = 2;
+
+    // randomSphereScene(world, camera);
+    // sphereScene(world, camera);
+    teapotScene(world, camera);
+    // tetrahedronScene(world, camera);
 
     // render
     Texture<vec3> framebuffer(camera.m_imageSize);
@@ -116,7 +146,7 @@ void render() {
     // output image
     writeBMP(OUTPUT_FILENAME, frameSRGB);
 
-    LOG("image written");
+    LOG("Image written");
 }
 
 i32 main(i32 argc, char** argv) {

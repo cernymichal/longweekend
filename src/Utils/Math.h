@@ -124,7 +124,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER f32 rayTriangleIntersection(const vec3& rayOr
 
     // if the determinant is negative, the triangle is back facing
     // if the determinant is close to 0, the ray misses the triangle
-    if (determinant < 0.0001f)
+    if (determinant < glm::epsilon<f32>())
         return NAN;
 
     auto determinantInv = 1.0f / determinant;

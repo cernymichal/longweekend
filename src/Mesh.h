@@ -18,21 +18,28 @@ public:
     Mesh(std::vector<Face>&& faces, const Ref<Material>& material) : m_faces(faces), m_material(material) {}
 
     HitRecord hit(const Ray& ray, Interval<f32> tInterval) const override {
+        HitRecord hit{false};
+        hit.t = tInterval.max;
+
         for (const auto& face : m_faces) {
+            if (glm::dot(face.normal, ray.direction()) > 0.0f)
+                continue;  // early backface culling
+
             auto t = rayTriangleIntersection(ray.origin(), ray.direction(), face.vertices);
 
-            if (isnan(t) || !tInterval.surrounds(t))
+            if (isnan(t) || !tInterval.surrounds(t) || t > hit.t)
                 continue;
 
-            HitRecord hit{true};
+            hit.hit = true;
             hit.t = t;
-            hit.point = ray.at(t);
             hit.setFaceNormal(ray, face.normal);
-            hit.material = m_material;
-
-            return hit;
         }
 
-        return HitRecord();
+        if (hit.hit) {
+            hit.point = ray.at(hit.t);
+            hit.material = m_material;
+        }
+
+        return hit;
     }
 };
