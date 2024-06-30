@@ -47,30 +47,36 @@ void randomSphereScene(HittableGroup& world, Camera& camera) {
 
     for (i32 a = -11; a < 11; a++) {
         for (i32 b = -11; b < 11; b++) {
-            auto choose_mat = random<f64>();
+            auto chooseMat = random<f64>();
             vec3 center(a + 0.9 * random<f64>(), 0.2, b + 0.9 * random<f64>());
 
             if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
                 Ref<Material> sphere_material;
 
-                if (choose_mat < 0.8) {
+                if (chooseMat < 0.7) {
                     // diffuse
                     auto albedo = randomVec<3>() * randomVec<3>();
                     sphere_material = makeRef<LambertianMaterial>(albedo);
-                    world.add(makeRef<Sphere>(center, 0.2, sphere_material));
                 }
-                else if (choose_mat < 0.95) {
+                else if (chooseMat < 0.8) {
                     // metal
                     auto albedo = randomVec<3>(vec3(0.5), vec3(1));
                     auto fuzz = random<f64>(0, 0.5);
                     sphere_material = makeRef<MetalMaterial>(albedo, fuzz);
-                    world.add(makeRef<Sphere>(center, 0.2, sphere_material));
+                }
+                else if (chooseMat < 0.9) {
+                    // emissive
+                    auto albedo = vec3(0);
+                    auto emission = randomVec<3>() * randomVec<3>();
+                    f32 intensity = random<f32>(10, 50);
+                    sphere_material = makeRef<LambertianMaterial>(albedo, emission, intensity);
                 }
                 else {
                     // glass
                     sphere_material = makeRef<DielectricMaterial>(1.5);
-                    world.add(makeRef<Sphere>(center, 0.2, sphere_material));
                 }
+
+                world.add(makeRef<Sphere>(center, 0.2, sphere_material));
             }
         }
     }
@@ -97,7 +103,7 @@ void teapotScene(HittableGroup& world, Camera& camera) {
 
     // world
     auto teapot = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
-    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.8));
+    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8));
 
     world.add(teapot);
 }
@@ -113,10 +119,10 @@ void tetrahedronScene(HittableGroup& world, Camera& camera) {
     camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto teapot = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
-    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.8));
+    auto tetrahedron = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
+    tetrahedron->m_material = makeRef<LambertianMaterial>(vec3(0.8));
 
-    world.add(teapot);
+    world.add(tetrahedron);
 }
 
 void render() {
@@ -125,7 +131,7 @@ void render() {
 
     camera.m_imageSize = uvec2(640, 480) / 4U;
     camera.m_samples = 16;
-    camera.m_maxBounces = 2;
+    camera.m_maxBounces = 3;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);

@@ -22,17 +22,17 @@ public:
         hit.t = tInterval.max;
 
         for (const auto& face : m_faces) {
-            if (glm::dot(face.normal, ray.direction()) > 0.0f)
+            if (glm::dot(face.normal, ray.direction) > 0.0f)
                 continue;  // early backface culling
 
-            auto t = rayTriangleIntersection(ray.origin(), ray.direction(), face.vertices);
+            auto t = rayTriangleIntersection(ray.origin, ray.direction, face.vertices);
 
             if (isnan(t) || !tInterval.surrounds(t) || t > hit.t)
                 continue;
 
             hit.hit = true;
             hit.t = t;
-            hit.setFaceNormal(ray, face.normal);
+            hit.setNormal(ray, face.normal);
         }
 
         if (hit.hit) {

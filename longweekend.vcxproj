@@ -208,6 +208,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\BVH\BVH.cpp" />
     <ClCompile Include="src\IO\TextureIO.cpp" />
     <ClCompile Include="src\IO\MeshIO.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -219,6 +220,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\BVH\BVH.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\HittableGroup.h" />
     <ClInclude Include="src\IHittable.h" />

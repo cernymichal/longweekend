@@ -1,18 +1,16 @@
 #pragma once
 
-class Ray {
-public:
-    Ray() = default;
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+    vec3 invDirection;
 
-    Ray(const vec3& origin, const vec3& direction) : m_origin(origin), m_direction(direction) {}
+    explicit Ray() = default;
 
-    inline const vec3& origin() const { return m_origin; }
+    Ray(const vec3& origin, const vec3& direction)
+        : origin(origin), direction(direction), invDirection(1.0f / direction) {}
 
-    inline const vec3& direction() const { return m_direction; }
-
-    inline vec3 at(f32 t) const { return m_origin + t * m_direction; }
-
-private:
-    vec3 m_origin;
-    vec3 m_direction;
+    inline vec3 at(f32 t) const {
+        return origin + t * direction;
+    }
 };

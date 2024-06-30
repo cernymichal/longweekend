@@ -77,28 +77,33 @@ private:
     }
 
     vec3 rayColor(Ray ray, const IHittable& world) const {
-        vec3 accumulator = vec3(1);
+        vec3 attenuation = vec3(1);
+        vec3 incomingLight = vec3(0);
+
         for (u32 i = 0; i <= m_maxBounces; i++) {
             auto hit = world.hit(ray, {0.001f, std::numeric_limits<f32>::infinity()});
             if (!hit.hit) {
-                accumulator *= sampleEnvironment(ray);
-                break;
+                incomingLight += attenuation * sampleEnvironment(ray);
+                break;  // no hit, return environment
             }
 
-            Ray scattered;
-            vec3 attenuation;
-            if (!hit.material->scatter(ray, hit, attenuation, scattered))
-                return vec3(0);  // absorbed
+            Material::ScatterOutput scatterOutput = hit.material->scatter(ray, hit);
+            ray = scatterOutput.scatteredRay;
+            incomingLight += attenuation * scatterOutput.emission;
+            attenuation *= scatterOutput.attenuation;
 
-            ray = scattered;
-            accumulator *= attenuation;
+            if (!scatterOutput.didScatter)
+                break;  // absorbed
+
+            // if (glm::length2(attenuation) < 0.001f)
+            //     break;  // early termination for small values, might break high exposure
         }
 
-        return accumulator;
+        return incomingLight;
     }
 
     vec3 sampleEnvironment(const Ray& ray) const {
-        auto unitDirection = normalize(ray.direction());
+        auto unitDirection = normalize(ray.direction);
 
         if (m_environment) {
             f32 u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5f;
@@ -106,7 +111,9 @@ private:
             return m_environment->sampleI({u, v});
         }
 
-        return glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f));
+        // return glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f)); // sky gradient
+
+        return vec3(0.05f);
     }
 
     vec3 randomInDefocusDisk() const {

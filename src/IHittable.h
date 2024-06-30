@@ -12,10 +12,10 @@ struct HitRecord {
     bool frontFace = false;
     Ref<Material> material;
 
-    void setFaceNormal(const Ray& ray, const vec3& outwardNormal) {
+    void setNormal(const Ray& ray, const vec3& outwardNormal) {
         // outwardNormal is assumed to be normalized
 
-        frontFace = dot(ray.direction(), outwardNormal) <= 0;
+        frontFace = glm::dot(ray.direction, outwardNormal) <= 0;
         normal = frontFace ? outwardNormal : -outwardNormal;
     }
 };
