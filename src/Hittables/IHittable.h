@@ -10,6 +10,7 @@ struct HitRecord {
     vec3 point = vec3(0);
     vec3 normal = vec3(0);
     bool frontFace = false;
+    vec2 uv = vec2(0);
     Ref<Material> material;
 
     void setNormal(const Ray& ray, const vec3& outwardNormal) {

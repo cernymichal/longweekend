@@ -222,18 +222,21 @@
   <ItemGroup>
     <ClInclude Include="src\BVH\BVH.h" />
     <ClInclude Include="src\Camera.h" />
-    <ClInclude Include="src\HittableGroup.h" />
-    <ClInclude Include="src\IHittable.h" />
+    <ClInclude Include="src\Hittables\HittableGroup.h" />
+    <ClInclude Include="src\Hittables\IHittable.h" />
     <ClInclude Include="src\IO\TextureIO.h" />
     <ClInclude Include="src\IO\MeshIO.h" />
     <ClInclude Include="src\Material.h" />
-    <ClInclude Include="src\Mesh.h" />
+    <ClInclude Include="src\Hittables\Model.h" />
     <ClInclude Include="src\Postprocessing.h" />
     <ClInclude Include="src\Texture.h" />
+    <ClInclude Include="src\Face.h" />
+    <ClInclude Include="src\Transform.h" />
+    <ClInclude Include="src\Utils\Constants.h" />
     <ClInclude Include="src\Utils\Log.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Ray.h" />
-    <ClInclude Include="src\Sphere.h" />
+    <ClInclude Include="src\Hittables\Sphere.h" />
     <ClInclude Include="src\Utils\Math.h" />
     <ClInclude Include="src\Utils\Ptr.h" />
     <ClInclude Include="src\Utils\Random.h" />

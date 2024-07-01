@@ -12,8 +12,8 @@ public:
 
     f32 m_fov = 90.0f;
     vec3 m_position = vec3(0);
-    vec3 m_lookAt = vec3(0, 0, -1);
-    vec3 m_up = vec3(0, 1, 0);
+    vec3 m_lookAt = VEC_FORWARD; // TODO add transform to camera
+    vec3 m_up = VEC_UP;
 
     f32 m_defocusAngle = 0.0f;
     f32 m_focusDistance = 10.0f;

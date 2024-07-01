@@ -17,17 +17,18 @@ public:
     }
 
     HitRecord hit(const Ray& ray, Interval<f32> tInterval) const override {
-        HitRecord closestHit;
-        closestHit.t = tInterval.max;
+        HitRecord hit{false};
 
         for (const auto& hittable : m_hittables) {
-            auto hit = hittable->hit(ray, {tInterval.min, closestHit.t});
+            auto childHit = hittable->hit(ray, tInterval);
 
-            if (hit.hit)
-                closestHit = hit;
+            if (childHit.hit) {
+                hit = childHit;
+                tInterval.max = hit.t;
+            }
         }
 
-        return closestHit;
+        return hit;
     }
 
 private:

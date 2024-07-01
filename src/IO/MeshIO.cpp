@@ -36,7 +36,7 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
         materialRefs.push_back(mat);
     }
 
-    std::vector<Mesh::Face> faces;
+    std::vector<Face> faces;
 
     bool hasNormals = !attrib.normals.empty();
     bool hasTexcoords = !attrib.texcoords.empty();
@@ -59,14 +59,11 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
                 face.vertices[v] = vec3(vx, vy, vz);
 
                 if (hasNormals) {
-                    // TODO per-vertex normals? normal maps?
-                    /*
                     assert(idx.normal_index >= 0);
                     tinyobj::real_t nx = attrib.normals[3 * size_t(idx.normal_index) + 0];
                     tinyobj::real_t ny = attrib.normals[3 * size_t(idx.normal_index) + 1];
                     tinyobj::real_t nz = attrib.normals[3 * size_t(idx.normal_index) + 2];
                     face.normal = vec3(nx, ny, nz);
-                    */
                 }
 
                 if (hasTexcoords) {
@@ -75,12 +72,7 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
                     tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
                     face.uvs[v] = vec2(tx, ty);
                 }
-                else  // Set dummy UVs
-                    face.uvs[v] = vec2(0);
             }
-
-            // if (!hasNormals) // Calculate normals if they are not provided
-            face.normal = glm::normalize(glm::cross(face.vertices[1] - face.vertices[0], face.vertices[2] - face.vertices[0]));
 
             index_offset += fv;
         }
