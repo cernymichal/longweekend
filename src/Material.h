@@ -1,10 +1,12 @@
 #pragma once
 
-#include "IHittable.h"
+#include "Hittables/IHittable.h"
 #include "Ray.h"
 
 class Material {
 public:
+    std::string m_name = "Unnamed";
+
     struct ScatterOutput {
         bool didScatter;
         Ray scatteredRay;
@@ -19,7 +21,7 @@ public:
 
 class LambertianMaterial : public Material {
 public:
-    vec3 m_albedo = vec3(0);
+    vec3 m_albedo = vec3(0.8);
     vec3 m_emission = vec3(0);
     f32 m_emissionIntensity = 0;
 

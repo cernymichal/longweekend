@@ -1,5 +1,5 @@
 #pragma once
 
-#include "Mesh.h"
+#include "Hittables/Model.h"
 
 Mesh loadOBJ(const std::filesystem::path& filePath);

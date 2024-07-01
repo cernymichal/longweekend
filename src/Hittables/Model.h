@@ -13,11 +13,12 @@ public:
         Ref<Material> material;
     };
 
+    std::string m_name = "Unnamed";
     std::vector<Submesh> m_submeshes;
-    bool m_hasNormals;
-    bool m_hasUVs;
+    bool m_shadeSmooth = true;
 
-    Mesh(std::vector<Submesh>&& submeshes) : m_submeshes(submeshes) {}
+    Mesh(std::vector<Submesh>&& submeshes, bool hasNormals, bool hasUVs)
+        : m_submeshes(submeshes), m_hasNormals(hasNormals), m_hasUVs(hasUVs) {}
 
     HitRecord hit(const Ray& ray, Interval<f32> tInterval) const override {
         HitRecord hit{false};
@@ -35,10 +36,15 @@ public:
 
         return hit;
     }
+
+private:
+    bool m_hasNormals;
+    bool m_hasUVs;
 };
 
 class Model : public IHittable {
 public:
+    std::string m_name = "Unnamed";
     Transform m_transform;
     Ref<Mesh> m_mesh;
 

@@ -13,19 +13,21 @@ inline vec3 acesApproximation(vec3 color) {
     return glm::clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0f, 1.0f);
 }
 
-inline u8vec3 hdrToSRGB(const vec3& color, f32 gamma) {
-    vec3 output = acesApproximation(color);         // tone mapping
+inline u8vec3 hdrToSRGB(const vec3& color, f32 gamma = 2.2f, f32 divideBy = 1.0f) {
+    vec3 output = color / divideBy;                 // divide by
+    output = acesApproximation(output);             // tone mapping
     output = glm::pow(output, vec3(1.0f / gamma));  // gamma correction
     output = glm::clamp(output, vec3(0), vec3(1));  // clamp to [0, 1]
     return u8vec3(output * 255.0f);                 // convert to 8-bit
 }
 
-Texture<u8vec3> hdrToSRGB(const Texture<vec3>& color, f32 gamma = 2.2f) {
-    Texture<u8vec3> output(color.size());
-    for (u32 x = 0; x < color.size().x; x++) {
-        for (u32 y = 0; y < color.size().y; y++) {
-            output[uvec2(x, y)] = hdrToSRGB(color[uvec2(x, y)], gamma);
-        }
+inline Texture<u8vec3> hdrToSRGB(const Texture<vec3>& texture, f32 gamma = 2.2f, f32 divideBy = 1.0f) {
+    Texture<u8vec3> output(texture.size());
+#pragma omp parallel for
+    for (u32 y = 0; y < texture.size().y; y++) {
+        for (u32 x = 0; x < texture.size().x; x++)
+            output[uvec2(x, y)] = hdrToSRGB(texture[uvec2(x, y)], gamma, divideBy);
     }
+
     return output;
 }

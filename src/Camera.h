@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IHittable.h"
+#include "Hittables/IHittable.h"
 #include "Material.h"
 #include "Texture.h"
 
@@ -12,7 +12,7 @@ public:
 
     f32 m_fov = 90.0f;
     vec3 m_position = vec3(0);
-    vec3 m_lookAt = VEC_FORWARD; // TODO add transform to camera
+    vec3 m_lookAt = VEC_FORWARD;  // TODO add transform to camera
     vec3 m_up = VEC_UP;
 
     f32 m_defocusAngle = 0.0f;
@@ -20,31 +20,37 @@ public:
 
     Ref<Texture<vec3>> m_environment;
 
-    void render(const IHittable& world, Texture<vec3>& target) {
+    Texture<vec3> render(const IHittable& world, std::function<void(const Texture<vec3>&, u32)> sampleFinishCallback) {
         initialize();
-        LOG(std::format("Rendering image {0}x{1}", m_imageSize.x, m_imageSize.y));
 
+        // Accumulate samples
+        Texture<vec3> accumulator(m_imageSize);
+        for (u32 sample = 0; sample < m_samples; sample++) {
+            vec2 jitter = randomVec<2>() - 0.5f;
+            vec3 jitteredSamplePoint = jitter.x * m_pixelDeltaU + jitter.y * m_pixelDeltaU;
+
+            // Sample the whole frame
 #pragma omp parallel for
-        for (u32 y = 0; y < m_imageSize.y; y++) {
-            // LOG(std::format("{:.1f}% done", y * 100.0 / m_imageSize.y));
-
-            for (u32 x = 0; x < m_imageSize.x; x++) {
-                auto pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
-                auto color = vec3(0);
-
-                for (u32 i = 0; i < m_samples; i++) {
-                    auto jitter = randomVec<2>() - 0.5f;
-                    auto pixelSamplePoint = pixelCenter + jitter.x * m_pixelDeltaU + jitter.y * m_pixelDeltaU;
-                    auto rayOrigin = m_defocusAngle > 0 ? randomInDefocusDisk() : m_position;
+            for (u32 y = 0; y < m_imageSize.y; y++) {
+                for (u32 x = 0; x < m_imageSize.x; x++) {
+                    vec3 pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
+                    vec3 pixelSamplePoint = pixelCenter + jitteredSamplePoint;
+                    vec3 rayOrigin = m_defocusAngle > 0 ? randomInDefocusDisk() : m_position;
                     Ray ray(rayOrigin, pixelSamplePoint - rayOrigin);
 
-                    color += rayColor(ray, world);
+                    accumulator[uvec2(x, y)] += rayColor(ray, world);
                 }
-
-                target[uvec2(x, y)] = color / static_cast<f32>(m_samples);
             }
+
+            sampleFinishCallback(accumulator, sample);
         }
-        LOG("100% done");
+
+        // Average the samples
+        for (u32 y = 0; y < m_imageSize.y; y++)
+            for (u32 x = 0; x < m_imageSize.x; x++)
+                accumulator[uvec2(x, y)] /= m_samples;
+
+        return accumulator;
     }
 
 private:
@@ -84,7 +90,7 @@ private:
             auto hit = world.hit(ray, {0.001f, std::numeric_limits<f32>::infinity()});
             if (!hit.hit) {
                 incomingLight += attenuation * sampleEnvironment(ray);
-                break;  // no hit, return environment
+                break;  // No hit, return environment
             }
 
             Material::ScatterOutput scatterOutput = hit.material->scatter(ray, hit);
@@ -93,10 +99,10 @@ private:
             attenuation *= scatterOutput.attenuation;
 
             if (!scatterOutput.didScatter)
-                break;  // absorbed
+                break;  // Absorbed
 
             // if (glm::length2(attenuation) < 0.001f)
-            //     break;  // early termination for small values, might break high exposure
+            //     break;  // Early termination for small values, might break high exposure
         }
 
         return incomingLight;

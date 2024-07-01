@@ -1,12 +1,14 @@
 #include "Camera.h"
-#include "HittableGroup.h"
+#include "Hittables/HittableGroup.h"
+#include "Hittables/Sphere.h"
 #include "IO/MeshIO.h"
 #include "IO/TextureIO.h"
 #include "Postprocessing.h"
-#include "Sphere.h"
 #include "Texture.h"
 
-constexpr auto OUTPUT_FILENAME = "output.bmp";
+constexpr bool ENABLE_PROGRESS_VIEW = true;
+constexpr auto PROGRESS_VIEW_FILENAME = "progress_view.bmp";
+constexpr auto OUTPUT_FILENAME = "output.exr";
 
 void sphereScene(HittableGroup& world, Camera& camera) {
     // camera
@@ -103,7 +105,6 @@ void teapotScene(HittableGroup& world, Camera& camera) {
 
     // world
     auto teapot = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
-    teapot->m_material = makeRef<LambertianMaterial>(vec3(0.8));
 
     world.add(teapot);
 }
@@ -120,7 +121,6 @@ void tetrahedronScene(HittableGroup& world, Camera& camera) {
 
     // world
     auto tetrahedron = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
-    tetrahedron->m_material = makeRef<LambertianMaterial>(vec3(0.8));
 
     world.add(tetrahedron);
 }
@@ -129,30 +129,35 @@ void render() {
     HittableGroup world;
     Camera camera;
 
-    camera.m_imageSize = uvec2(640, 480) / 4U;
-    camera.m_samples = 16;
-    camera.m_maxBounces = 3;
+    camera.m_imageSize = uvec2(640, 480);  // / 2U;
+    camera.m_samples = 32;
+    camera.m_maxBounces = 8;
+    f32 gamma = 2.2f;
 
-    // randomSphereScene(world, camera);
+    randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    teapotScene(world, camera);
+    // teapotScene(world, camera);
     // tetrahedronScene(world, camera);
 
     // render
-    Texture<vec3> framebuffer(camera.m_imageSize);
+    auto sampleFinishCallback = [camera, gamma](const Texture<vec3>& accumulator, u32 sample) {
+        LOG(std::format("{}/{} samples done ({:.1f}%)", sample, camera.m_samples, (sample + 1) * 100.0f / camera.m_samples));
+
+        if (ENABLE_PROGRESS_VIEW) {
+            auto frameSRGB = hdrToSRGB(accumulator, gamma, sample);
+            writeBMP(PROGRESS_VIEW_FILENAME, frameSRGB);
+        }
+    };
+
+    LOG(std::format("Rendering image {}x{}", camera.m_imageSize.x, camera.m_imageSize.y));
+
     auto start = std::chrono::high_resolution_clock::now();
-    camera.render(world, framebuffer);
+    Texture<vec3> frame = camera.render(world, sampleFinishCallback);
     auto stop = std::chrono::high_resolution_clock::now();
 
     LOG(std::format("Time taken: {:.2f}s", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0));
 
-    // postprocessing
-    Texture<u8vec3> frameSRGB = hdrToSRGB(framebuffer);
-
-    // output image
-    writeBMP(OUTPUT_FILENAME, frameSRGB);
-
-    LOG("Image written");
+    writeEXR(OUTPUT_FILENAME, frame);
 }
 
 i32 main(i32 argc, char** argv) {
