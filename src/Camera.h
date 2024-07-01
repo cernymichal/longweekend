@@ -30,7 +30,7 @@ public:
             vec3 jitteredSamplePoint = jitter.x * m_pixelDeltaU + jitter.y * m_pixelDeltaU;
 
             // Sample the whole frame
-#pragma omp parallel for
+            NODEBUG(_Pragma("omp parallel for"))
             for (u32 y = 0; y < m_imageSize.y; y++) {
                 for (u32 x = 0; x < m_imageSize.x; x++) {
                     vec3 pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
@@ -42,7 +42,7 @@ public:
                 }
             }
 
-            sampleFinishCallback(accumulator, sample);
+            sampleFinishCallback(accumulator, sample + 1);
         }
 
         // Average the samples

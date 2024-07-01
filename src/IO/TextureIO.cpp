@@ -76,7 +76,7 @@ Texture<T> readEXR(const std::string_view filePath, bool flipVertically) {
     std::string pathString = std::string(filePath);
     LOG("Loading texture " << pathString);
 
-    u32 channelsToLoad = 3;
+    i32 channelsToLoad = 3;
     if constexpr (std::is_same_v<T, f32>)
         channelsToLoad = 1;
     else if constexpr (std::is_same_v<T, vec2>)
@@ -113,7 +113,7 @@ Texture<T> readEXR(const std::string_view filePath, bool flipVertically) {
     }
 
     // Read HALF channel as f32.
-    for (u32 i = 0; i < header.num_channels; i++) {
+    for (i32 i = 0; i < header.num_channels; i++) {
         if (header.pixel_types[i] == TINYEXR_PIXELTYPE_HALF)
             header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
     }
@@ -129,12 +129,12 @@ Texture<T> readEXR(const std::string_view filePath, bool flipVertically) {
         throw std::runtime_error("Couldn't load EXR file");
     }
 
-    ivec2 size = ivec2(image.width, image.height);
+    uvec2 size = uvec2(image.width, image.height);
     T* data = new T[size.x * size.y];
 
     // Load the image data to a single array, flipping it vertically if necessary
     f32* dataf32 = reinterpret_cast<f32*>(data);
-    for (u32 channel = 0; channel < channelsToLoad; channel++) {
+    for (i32 channel = 0; channel < channelsToLoad; channel++) {
         auto idx = uvec2(0);
         for (idx.y = 0; idx.y < size.y; idx.y++) {
             for (idx.x = 0; idx.x < size.x; idx.x++) {

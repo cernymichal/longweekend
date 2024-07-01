@@ -27,6 +27,7 @@
 // Utils
 #include "Utils/Constants.h"
 #include "Utils/Log.h"
+#include "Utils/Macros.h"
 #include "Utils/Math.h"
 #include "Utils/Ptr.h"
 #include "Utils/Random.h"

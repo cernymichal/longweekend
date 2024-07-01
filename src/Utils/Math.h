@@ -106,12 +106,8 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER vec2 lineIntersection(const vec2& aOrigin, co
 }
 
 struct TriangleIntersection {
-    // X = rayOrigin + rayDirection * t
-    // X = vertices[0] + edge1 * w + edge2 * v
-    // X = vertices[0] * (1 - v - w) + vertices[1] * u + vertices[2] * w - Barycentric coordinates
-	f32 t;
-	f32 v;
-	f32 w;
+    f32 t;             // X = rayOrigin + rayDirection * t
+    vec3 barycentric;  // X = vertices[0] * u + vertices[1] * v + vertices[2] * w
 };
 
 /*
@@ -123,8 +119,6 @@ struct TriangleIntersection {
  * @note back facing triangles are not intersected
  */
 MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleIntersection rayTriangleIntersectionCoordinates(const vec3& rayOrigin, const vec3& rayDirection, const MATH_ARRAY<vec3, 3>& vertices) {
-    // X = rayOrigin + rayDirection * t
-
     // Möller–Trumbore intersection algorithm
     auto edge1 = vertices[1] - vertices[0];
     auto edge2 = vertices[2] - vertices[0];
@@ -138,20 +132,22 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleIntersection rayTriangleIntersectionC
 
     auto determinantInv = 1.0f / determinant;
     auto T = rayOrigin - vertices[0];
-    auto w = glm::dot(T, P) * determinantInv;
-    if (w < 0 || w > 1)
+    auto v = glm::dot(T, P) * determinantInv;
+    if (v < 0 || v > 1)
         return {NAN};
 
     auto Q = glm::cross(T, edge1);
-    auto v = glm::dot(rayDirection, Q) * determinantInv;
-    if (v < 0 || w + v > 1)
+    auto w = glm::dot(rayDirection, Q) * determinantInv;
+    if (w < 0 || v + w > 1)
         return {NAN};
 
     auto t = glm::dot(edge2, Q) * determinantInv;
     if (t < 0)
         return {NAN};
 
-    return {t, v, w};
+    // X = rayOrigin + rayDirection * t
+    // X = vertices[0] * u + vertices[1] * v + vertices[2] * w - Barycentric coordinates
+    return {t, vec3((1 - v - w), v, w)};
 }
 
 /*

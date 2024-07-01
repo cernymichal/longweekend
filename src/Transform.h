@@ -4,7 +4,7 @@ class Transform {
 public:
     void setPosition(const vec3& position) {
         m_position = position;
-        m_cacheValid = false;
+        recalculateCache();
     }
 
     void move(const vec3& offset) {
@@ -13,7 +13,7 @@ public:
 
     void setRotation(const quat& rotation) {
         m_rotation = rotation;
-        m_cacheValid = false;
+        recalculateCache();
     }
 
     void rotate(const quat& offset) {
@@ -22,7 +22,7 @@ public:
 
     void setScale(const vec3& scale) {
         m_scale = scale;
-        m_cacheValid = false;
+        recalculateCache();
     }
 
     void scale(const vec3& amount) {
@@ -42,16 +42,10 @@ public:
     }
 
     const mat4& modelMatrix() const {
-        if (!m_cacheValid)
-            recalculateCache();
-
         return m_modelMatrix;
     }
 
     const mat4& modelMatrixInverse() const {
-        if (!m_cacheValid)
-            recalculateCache();
-
         return m_modelMatrixInverse;
     }
 
@@ -72,16 +66,14 @@ private:
     quat m_rotation = quat(vec3(0.0f, 0.0f, 0.0f));
     vec3 m_scale = vec3(1.0f, 1.0f, 1.0f);
 
-    mutable mat4 m_modelMatrix = mat4(1.0);
-    mutable mat4 m_modelMatrixInverse = mat4(1.0);
-    mutable bool m_cacheValid = true;
+    mat4 m_modelMatrix = mat4(1.0);
+    mat4 m_modelMatrixInverse = mat4(1.0);
 
-    void recalculateCache() const {
+    void recalculateCache() {
         m_modelMatrix = mat4(1.0f);
         m_modelMatrix = glm::translate(m_modelMatrix, m_position);
         m_modelMatrix *= glm::mat4_cast(m_rotation);
         m_modelMatrix = glm::scale(m_modelMatrix, m_scale);
         m_modelMatrixInverse = glm::inverse(m_modelMatrix);
-        m_cacheValid = true;
     }
 };

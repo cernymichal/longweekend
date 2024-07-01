@@ -45,7 +45,7 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
         material->m_name = mtlMaterial.name;
         material->m_albedo = std::bit_cast<vec3>(mtlMaterial.diffuse);
         material->m_emission = std::bit_cast<vec3>(mtlMaterial.emission);
-        material->m_emissionIntensity = material->m_emission != vec3(0) ? 1 : 0;
+        material->m_emissionIntensity = material->m_emission != vec3(0) ? 1.0f : 0.0f;
 
         auto& submesh = submeshes.emplace_back();
         submesh.material = material;
@@ -54,7 +54,7 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
     for (size_t shapeId = 0; shapeId < shapes.size(); shapeId++) {
         auto& mesh = shapes[shapeId].mesh;
         for (size_t faceId = 0; faceId < mesh.num_face_vertices.size(); faceId++) {
-            size_t materialId = mesh.material_ids[faceId];
+            i32 materialId = mesh.material_ids[faceId];
             auto& face = (materialId >= 0 ? submeshes[materialId] : noMaterialSubmesh).faces.emplace_back();
 
             assert(mesh.num_face_vertices[faceId] == 3);

@@ -21,7 +21,7 @@ public:
 
 class LambertianMaterial : public Material {
 public:
-    vec3 m_albedo = vec3(0.8);
+    vec3 m_albedo = vec3(0.8f);
     vec3 m_emission = vec3(0);
     f32 m_emissionIntensity = 0;
 

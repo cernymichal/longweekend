@@ -104,7 +104,14 @@ void teapotScene(HittableGroup& world, Camera& camera) {
     camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto teapot = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
+    auto teapotMesh = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
+    auto teapot = makeRef<Model>(teapotMesh);
+
+    /*
+    teapot->m_transform.scale(vec3(0.6));
+    teapot->m_transform.rotate(vec3(0, -45, 0));
+    teapot->m_transform.move(0.03f * vec3(1, 1, 0));
+    */
 
     world.add(teapot);
 }
@@ -120,7 +127,8 @@ void tetrahedronScene(HittableGroup& world, Camera& camera) {
     camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto tetrahedron = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
+    auto tetrahedronMesh = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
+    auto tetrahedron = makeRef<Model>(tetrahedronMesh);
 
     world.add(tetrahedron);
 }
@@ -129,22 +137,22 @@ void render() {
     HittableGroup world;
     Camera camera;
 
-    camera.m_imageSize = uvec2(640, 480);  // / 2U;
-    camera.m_samples = 32;
+    camera.m_imageSize = uvec2(640, 480) / 2U;
+    camera.m_samples = 1024;
     camera.m_maxBounces = 8;
     f32 gamma = 2.2f;
 
-    randomSphereScene(world, camera);
+    // randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    // teapotScene(world, camera);
+    teapotScene(world, camera);
     // tetrahedronScene(world, camera);
 
     // render
     auto sampleFinishCallback = [camera, gamma](const Texture<vec3>& accumulator, u32 sample) {
-        LOG(std::format("{}/{} samples done ({:.1f}%)", sample, camera.m_samples, (sample + 1) * 100.0f / camera.m_samples));
+        LOG(std::format("{}/{} samples done ({:.1f}%)", sample, camera.m_samples, sample * 100.0f / camera.m_samples));
 
         if (ENABLE_PROGRESS_VIEW) {
-            auto frameSRGB = hdrToSRGB(accumulator, gamma, sample);
+            auto frameSRGB = hdrToSRGB(accumulator, gamma, (f32)sample);
             writeBMP(PROGRESS_VIEW_FILENAME, frameSRGB);
         }
     };

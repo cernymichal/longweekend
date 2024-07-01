@@ -237,6 +237,7 @@
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\Ray.h" />
     <ClInclude Include="src\Hittables\Sphere.h" />
+    <ClInclude Include="src\Utils\Macros.h" />
     <ClInclude Include="src\Utils\Math.h" />
     <ClInclude Include="src\Utils\Ptr.h" />
     <ClInclude Include="src\Utils\Random.h" />
