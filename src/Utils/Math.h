@@ -211,6 +211,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER glm::vec<L, bool> operator<=(const glm::vec<L
 }
 
 // Stream operators for vectors
+// TODO use glm
 
 template <typename T>
 MATH_FUNC_QUALIFIER std::ostream& operator<<(std::ostream& os, const glm::vec<2, T>& v) {

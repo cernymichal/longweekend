@@ -2,6 +2,7 @@
 
 #include "Hittables/IHittable.h"
 #include "Ray.h"
+#include "Texture.h"
 
 class Material {
 public:
@@ -10,7 +11,7 @@ public:
     struct ScatterOutput {
         bool didScatter = true;
         vec3 scatterDirection;
-        vec3 attenuation = vec3(1);
+        vec3 albedo = vec3(1);
         vec3 emission = vec3(0);
     };
 
@@ -22,8 +23,11 @@ public:
 class LambertianMaterial : public Material {
 public:
     vec3 m_albedo = vec3(0.8f);
+    Ref<Texture<vec3>> m_albedoTexture;
     vec3 m_emission = vec3(0);
+    Ref<Texture<vec3>> m_emissionTexture;
     f32 m_emissionIntensity = 0;
+    Ref<Texture<vec3>> m_normalTexture;
 
     LambertianMaterial() = default;
 
@@ -37,10 +41,15 @@ public:
         if (glm::any(glm::abs(scatterDirection) < vec3(1e-8f)))
             scatterDirection = hit.normal;
 
+        auto albedo = m_albedoTexture ? m_albedoTexture->sampleI(hit.uv) : m_albedo;
+        auto emission = m_emissionTexture ? m_emissionTexture->sampleI(hit.uv) : m_emission;
+
+        // TODO normal mapping
+
         return {
             .scatterDirection = scatterDirection,
-            .attenuation = m_albedo,
-            .emission = m_emission * m_emissionIntensity};
+            .albedo = albedo,
+            .emission = emission * m_emissionIntensity};
     }
 };
 
@@ -60,7 +69,7 @@ public:
         return {
             .didScatter = glm::dot(reflected, hit.normal) > 0,
             .scatterDirection = reflected,
-            .attenuation = m_albedo};
+            .albedo = m_albedo};
     }
 };
 

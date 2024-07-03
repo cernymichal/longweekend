@@ -14,14 +14,16 @@ struct HitRecord {
     WeakRef<const Material> material;
     vec2 uv = vec2(0);  // TODO remove
 
-    vec3 point; // Set just before scattering
+    vec3 point;  // Set just before scattering
 
     void transform(const mat4& transform) {
-		normal = glm::normalize(vec3(transform * vec4(normal, 0)));
-	}
+        normal = glm::normalize(vec3(transform * vec4(normal, 0)));
+    }
 };
 
 class IHittable {
 public:
     virtual HitRecord hit(Ray& ray) const = 0;
+
+    virtual void frameBegin() {}
 };

@@ -15,7 +15,7 @@ HitRecord BVH::intersect(Ray& ray) const {
         if (isnan(nodeIntersection.min) || !ray.tInterval.intersects(nodeIntersection))
             continue;
 
-        if (node.childIndex == 0) {
+        if (node.faceCount != 0) {
             // Leaf node
             for (u32 i = node.faceIndex; i < node.faceIndex + node.faceCount; i++) {
                 const Face& face = m_faces->at(i);
@@ -81,9 +81,8 @@ void BVH::build(std::vector<Face>& faces) {
     }
 
     m_nodes.push_back({.aabb = AABB::empty(),
-                       .faceIndex = 0,
                        .faceCount = (u32)faces.size(),
-                       .childIndex = 0});
+                       .faceIndex = 0});
 
     std::queue<std::pair<u32, u32>> queue;
     queue.push({0, 1});
@@ -95,6 +94,7 @@ void BVH::build(std::vector<Face>& faces) {
         queue.pop();
 
         // Calculate node AABB
+        currentNode.aabb = AABB::empty();
         for (u32 i = currentNode.faceIndex; i < currentNode.faceIndex + currentNode.faceCount; i++)
             currentNode.aabb = currentNode.aabb.boundingUnion(faceAABBs[i]);
 
@@ -127,25 +127,27 @@ void BVH::build(std::vector<Face>& faces) {
         }
 
         // Split node
-        currentNode.childIndex = m_nodes.size();
-
-        Node leftNode = {
-            .aabb = AABB::empty(),
-            .faceIndex = currentNode.faceIndex,
+        Node leftChild = {
             .faceCount = j - currentNode.faceIndex,
-            .childIndex = 0};
+            .faceIndex = currentNode.faceIndex};
 
-        Node rightNode = {
-            .aabb = AABB::empty(),
-            .faceIndex = j,
-            .faceCount = currentNode.faceCount - leftNode.faceCount,
-            .childIndex = 0};
+        Node rightChild = {
+            .faceCount = currentNode.faceCount - leftChild.faceCount,
+            .faceIndex = j};
+
+        if (leftChild.faceCount == 0 || rightChild.faceCount == 0)
+            continue;  // TODO handle this case, try another axis?
+
+        currentNode.faceCount = 0;
+        currentNode.childIndex = (u32)m_nodes.size();
 
         queue.push({currentNode.childIndex, depth + 1});
         queue.push({currentNode.childIndex + 1, depth + 1});
 
         // BEWARE this could invalidate node references on resize!
-        m_nodes.push_back(leftNode);
-        m_nodes.push_back(rightNode);
+        m_nodes.push_back(leftChild);
+        m_nodes.push_back(rightChild);
     }
+
+    m_nodes.shrink_to_fit();
 }

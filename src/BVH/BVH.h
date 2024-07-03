@@ -12,12 +12,16 @@ public:
 
     void build(std::vector<Face>& faces);
 
+    bool isBuilt() const { return !m_nodes.empty(); }
+
 private:
     struct Node {
         AABB aabb;
-        u32 faceIndex;
         u32 faceCount;
-        u32 childIndex;  // TODO combine faceIndex and childIndex
+        union {              // Either faceIndex or childIndex if faceCount == 0
+            u32 faceIndex;   // First face
+            u32 childIndex;  // Left child
+        };
     };
 
     std::vector<Face>* m_faces;

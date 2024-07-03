@@ -19,7 +19,7 @@ void sphereScene(HittableGroup& world, Camera& camera) {
     camera.m_defocusAngle = 3.0f;
     camera.m_focusDistance = glm::length(camera.m_position - camera.m_lookAt);
 
-    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
+    camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
     auto groundMaterial = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.0));
@@ -42,7 +42,7 @@ void randomSphereScene(HittableGroup& world, Camera& camera) {
     camera.m_defocusAngle = 0.6f;
     camera.m_focusDistance = 10.0f;
 
-    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
+    camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
     auto ground_material = makeRef<LambertianMaterial>(vec3(0.5, 0.5, 0.5));
@@ -99,7 +99,7 @@ void teapotDragonScene(HittableGroup& world, Camera& camera) {
     camera.m_lookAt = vec3(0, 0, 0);
     camera.m_fov = 48.0f;
 
-    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
+    camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
     auto teapotMesh = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
@@ -124,6 +124,7 @@ void teapotDragonScene(HittableGroup& world, Camera& camera) {
 
     auto sphere_material = makeRef<LambertianMaterial>(vec3(0), vec3(1, 0, 0), 10);
     auto sphere = makeRef<Sphere>(vec3(-0.1, 0.15, 0.1), 0.02, sphere_material);
+
     world.add(sphere);
 
     camera.m_defocusAngle = 0.6f;
@@ -138,7 +139,7 @@ void tetrahedronScene(HittableGroup& world, Camera& camera) {
     // camera.m_defocusAngle = 0.6f;
     // camera.m_focusDistance = 10.0f;
 
-    camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
+    camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
     auto tetrahedronMesh = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
@@ -147,19 +148,39 @@ void tetrahedronScene(HittableGroup& world, Camera& camera) {
     world.add(tetrahedron);
 }
 
+void reimuScene(HittableGroup& world, Camera& camera) {
+    // camera
+    camera.m_position = vec3(0, 0, 2);
+    camera.m_lookAt = vec3(0, 0, 0);
+    camera.m_fov = 48.0f;
+
+    camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
+
+    // world
+    auto reimuMesh = makeRef<Mesh>(loadOBJ("resources/reimu/reimu.obj"));
+    auto reimu = makeRef<Model>(reimuMesh);
+
+    reimu->m_transform.scale(vec3(1.0 / 20.0));
+    reimu->m_transform.move(vec3(0.5, 0.15, 0.5));
+    reimu->m_transform.rotate(glm::radians(vec3(0, -90, 0)));
+
+    world.add(reimu);
+}
+
 void render() {
     HittableGroup world;
     Camera camera;
 
-    camera.m_imageSize = uvec2(640, 480);
-    camera.m_samples = 1024;
+    camera.m_imageSize = uvec2(640, 480) * 2U;
+    camera.m_samples = 300;
     camera.m_maxBounces = 8;
     f32 gamma = 2.2f;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    teapotDragonScene(world, camera);
+    // teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
+    reimuScene(world, camera);
 
     // render
     auto progressViewNextUpdate = std::chrono::high_resolution_clock::now();

@@ -13,20 +13,20 @@
 #include "TextureIO.h"
 
 template <typename T>
-Texture<T> readTexture(const std::string_view filePath, bool flipVertically) {
-    if (filePath.ends_with(".exr"))
-        return readEXR<T>(filePath, flipVertically);
+Texture<T> loadTexture(const std::filesystem::path& filePath, bool flipVertically) {
+    if (filePath.extension() == ".exr")
+        return loadEXR<T>(filePath, flipVertically);
     else
-        return readSTB<T>(filePath, flipVertically);
+        return loadTextureSTB<T>(filePath, flipVertically);
 }
 
-template Texture<f32> readTexture(const std::string_view filePath, bool flipVertically);
-template Texture<vec2> readTexture(const std::string_view filePath, bool flipVertically);
-template Texture<vec3> readTexture(const std::string_view filePath, bool flipVertically);
-template Texture<vec4> readTexture(const std::string_view filePath, bool flipVertically);
+template Texture<f32> loadTexture(const std::filesystem::path& filePath, bool flipVertically);
+template Texture<vec2> loadTexture(const std::filesystem::path& filePath, bool flipVertically);
+template Texture<vec3> loadTexture(const std::filesystem::path& filePath, bool flipVertically);
+template Texture<vec4> loadTexture(const std::filesystem::path& filePath, bool flipVertically);
 
 template <typename T>
-Texture<T> readSTB(const std::string_view filePath, bool flipVertically) {
+Texture<T> loadTextureSTB(const std::filesystem::path& filePath, bool flipVertically) {
     u32 channelsToLoad = 3;
     if constexpr (std::is_same_v<T, f32>)
         channelsToLoad = 1;
@@ -48,7 +48,7 @@ Texture<T> readSTB(const std::string_view filePath, bool flipVertically) {
     ivec2 size;
     T* data = nullptr;
 
-    const auto filePathStr = std::string(filePath);
+    const auto filePathStr = filePath.string();
     if (stbi_is_hdr(filePathStr.c_str()))
         data = reinterpret_cast<T*>(stbi_loadf(filePathStr.c_str(), &size.x, &size.y, &channels, channelsToLoad));
     else {
@@ -72,8 +72,8 @@ Texture<T> readSTB(const std::string_view filePath, bool flipVertically) {
 }
 
 template <typename T>
-Texture<T> readEXR(const std::string_view filePath, bool flipVertically) {
-    std::string pathString = std::string(filePath);
+Texture<T> loadEXR(const std::filesystem::path& filePath, bool flipVertically) {
+    std::string pathString = filePath.string();
     LOG("Loading texture " << pathString);
 
     i32 channelsToLoad = 3;
@@ -162,19 +162,19 @@ Texture<T> readEXR(const std::string_view filePath, bool flipVertically) {
     return Texture<T>(size, std::move(data));
 }
 
-void writeBMP(const std::string_view filePath, const Texture<u8vec3> texture, bool flipVertically) {
+void writeBMP(const std::filesystem::path& filePath, const Texture<u8vec3> texture, bool flipVertically) {
     if (flipVertically)
         stbi_flip_vertically_on_write(true);
     else
         stbi_flip_vertically_on_write(false);
 
-    std::string pathString = std::string(filePath);
+    std::string pathString = filePath.string();
     stbi_write_bmp(pathString.c_str(), texture.size().x, texture.size().y, 3, texture.data());
 }
 
 template <typename T>
-void writeEXR(const std::string_view filePath, const Texture<T> texture, bool flipVertically) {
-    std::string pathString = std::string(filePath);
+void writeEXR(const std::filesystem::path& filePath, const Texture<T> texture, bool flipVertically) {
+    std::string pathString = filePath.string();
     LOG("Saving texture " << pathString);
 
     u32 channelsToSave = 1;
@@ -253,7 +253,7 @@ void writeEXR(const std::string_view filePath, const Texture<T> texture, bool fl
     }
 }
 
-template void writeEXR(const std::string_view filePath, const Texture<f32> texture, bool flipVertically);
-template void writeEXR(const std::string_view filePath, const Texture<vec2> texture, bool flipVertically);
-template void writeEXR(const std::string_view filePath, const Texture<vec3> texture, bool flipVertically);
-template void writeEXR(const std::string_view filePath, const Texture<vec4> texture, bool flipVertically);
+template void writeEXR(const std::filesystem::path& filePath, const Texture<f32> texture, bool flipVertically);
+template void writeEXR(const std::filesystem::path& filePath, const Texture<vec2> texture, bool flipVertically);
+template void writeEXR(const std::filesystem::path& filePath, const Texture<vec3> texture, bool flipVertically);
+template void writeEXR(const std::filesystem::path& filePath, const Texture<vec4> texture, bool flipVertically);

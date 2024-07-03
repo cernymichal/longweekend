@@ -4,7 +4,7 @@ class Transform {
 public:
     void setPosition(const vec3& position) {
         m_position = position;
-        recalculateCache();
+        m_cacheValid = false;
     }
 
     void move(const vec3& offset) {
@@ -13,7 +13,7 @@ public:
 
     void setRotation(const quat& rotation) {
         m_rotation = rotation;
-        recalculateCache();
+        m_cacheValid = false;
     }
 
     void rotate(const quat& offset) {
@@ -22,7 +22,7 @@ public:
 
     void setScale(const vec3& scale) {
         m_scale = scale;
-        recalculateCache();
+        m_cacheValid = false;
     }
 
     void scale(const vec3& amount) {
@@ -42,10 +42,12 @@ public:
     }
 
     const mat4& modelMatrix() const {
+        DEBUG(if (!m_cacheValid) LOG("Using invalidated model matrix!");)
         return m_modelMatrix;
     }
 
     const mat4& modelMatrixInverse() const {
+        DEBUG(if (!m_cacheValid) LOG("Using invalidated model matrix inverse!");)
         return m_modelMatrixInverse;
     }
 
@@ -61,6 +63,19 @@ public:
         return glm::normalize(vec3(modelMatrix() * vec4(VEC_RIGHT, 0.0f)));
     }
 
+    void updateMatrices() {
+        if (m_cacheValid)
+            return;
+
+        m_modelMatrix = mat4(1.0f);
+        m_modelMatrix = glm::translate(m_modelMatrix, m_position);
+        m_modelMatrix *= glm::mat4_cast(m_rotation);
+        m_modelMatrix = glm::scale(m_modelMatrix, m_scale);
+        m_modelMatrixInverse = glm::inverse(m_modelMatrix);
+
+        m_cacheValid = true;
+    }
+
 private:
     vec3 m_position = vec3(0.0f, 0.0f, 0.0f);
     quat m_rotation = quat(vec3(0.0f, 0.0f, 0.0f));
@@ -68,12 +83,5 @@ private:
 
     mat4 m_modelMatrix = mat4(1.0);
     mat4 m_modelMatrixInverse = mat4(1.0);
-
-    void recalculateCache() {
-        m_modelMatrix = mat4(1.0f);
-        m_modelMatrix = glm::translate(m_modelMatrix, m_position);
-        m_modelMatrix *= glm::mat4_cast(m_rotation);
-        m_modelMatrix = glm::scale(m_modelMatrix, m_scale);
-        m_modelMatrixInverse = glm::inverse(m_modelMatrix);
-    }
+    bool m_cacheValid = true;
 };

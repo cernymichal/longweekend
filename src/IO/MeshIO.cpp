@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "Material.h"
+#include "TextureIO.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
@@ -46,6 +47,17 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
         material->m_albedo = std::bit_cast<vec3>(mtlMaterial.diffuse);
         material->m_emission = std::bit_cast<vec3>(mtlMaterial.emission);
         material->m_emissionIntensity = material->m_emission != vec3(0) ? 1.0f : 0.0f;
+
+        // TODO support texture options
+        // TODO share textures
+        if (!mtlMaterial.diffuse_texname.empty())
+            material->m_albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.diffuse_texname, true));
+
+        if (!mtlMaterial.emissive_texname.empty())
+            material->m_emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.emissive_texname, true));
+
+        if (!mtlMaterial.normal_texname.empty())
+            material->m_normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.normal_texname, true));
 
         auto& submesh = submeshes.emplace_back();
         submesh.material = material;

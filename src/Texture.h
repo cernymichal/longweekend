@@ -48,19 +48,36 @@ public:
         delete[] m_data;
     }
 
+    // Bilinear interpolation
     const T sampleI(const vec2& uv) const {
-        auto sampleUV = uv * vec2(m_size - uvec2(1));
-
-        if (glm::all(glm::fract(sampleUV) <= vec2(0.001f)))
-            return sample(uvec2(sampleUV));
-
-        // Bilinear interpolation
-
+        vec2 sampleUV = uv * vec2(m_size - uvec2(1));
         f32 tx = sampleUV.x - floor(sampleUV.x);
         f32 ty = sampleUV.y - floor(sampleUV.y);
+        sampleUV = glm::floor(sampleUV);
 
-        T x0 = (1 - tx) * sample(uvec2(floor(sampleUV.x), floor(sampleUV.y))) + tx * sample(uvec2(floor(sampleUV.x) + 1, floor(sampleUV.y)));
-        T x1 = (1 - tx) * sample(uvec2(floor(sampleUV.x), floor(sampleUV.y) + 1)) + tx * sample(uvec2(floor(sampleUV.x) + 1, floor(sampleUV.y) + 1));
+        bool txIsWhole = tx < glm::epsilon<f32>() || (1 - tx) < glm::epsilon<f32>();
+        bool tyIsWhole = ty < glm::epsilon<f32>() || (1 - ty) < glm::epsilon<f32>();
+
+        if (txIsWhole && tyIsWhole) {
+            // No interpolation needed
+            sampleUV += glm::round(vec2(tx, ty));
+            return sample(uvec2(sampleUV));
+        }
+
+        if (txIsWhole) {
+            // Interpolate only in y
+            sampleUV.x += round(tx);  // round(tx) is either 0 or 1
+            return (1 - ty) * sample(uvec2(sampleUV.x, sampleUV.y)) + ty * sample(uvec2(sampleUV.x, sampleUV.y + 1));
+        }
+
+        if (tyIsWhole) {
+            // Interpolate only in x
+            sampleUV.y += round(ty);
+            return (1 - tx) * sample(uvec2((sampleUV.x), sampleUV.y)) + ty * sample(uvec2(sampleUV.x + 1, sampleUV.y));
+        }
+
+        T x0 = (1 - tx) * sample(uvec2(sampleUV.x, sampleUV.y)) + tx * sample(uvec2(sampleUV.x + 1, sampleUV.y));
+        T x1 = (1 - tx) * sample(uvec2(sampleUV.x, sampleUV.y + 1)) + tx * sample(uvec2(sampleUV.x + 1, sampleUV.y + 1));
 
         return x0 * (1 - ty) + x1 * ty;
     }

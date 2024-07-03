@@ -20,8 +20,9 @@ public:
 
     Ref<Texture<vec3>> m_environment;
 
-    Texture<vec3> render(const IHittable& world, std::function<void(const Texture<vec3>&, u32)> sampleFinishCallback) {
+    Texture<vec3> render(IHittable& world, std::function<void(const Texture<vec3>&, u32)> sampleFinishCallback) {
         initialize();
+        world.frameBegin();
 
         // Accumulate samples
         Texture<vec3> accumulator(m_imageSize);
@@ -101,7 +102,7 @@ private:
             Material::ScatterOutput scatterOutput = hit.material.lock()->scatter(ray, hit);
             ray = Ray(hit.point, scatterOutput.scatterDirection);
             incomingLight += attenuation * scatterOutput.emission;
-            attenuation *= scatterOutput.attenuation;
+            attenuation *= scatterOutput.albedo;
 
             if (!scatterOutput.didScatter)
                 break;  // Absorbed

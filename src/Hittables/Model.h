@@ -18,10 +18,7 @@ public:
     bool m_shadeSmooth = true;
 
     Mesh(std::vector<Submesh>&& submeshes, bool hasNormals, bool hasUVs)
-        : m_submeshes(submeshes), m_hasNormals(hasNormals), m_hasUVs(hasUVs) {
-        for (auto& submesh : m_submeshes)
-            submesh.bvh.build(submesh.faces);
-    }
+        : m_submeshes(submeshes), m_hasNormals(hasNormals), m_hasUVs(hasUVs) {}
 
     HitRecord hit(Ray& ray) const override {
         HitRecord hit;
@@ -62,6 +59,15 @@ public:
         return hit;
     }
 
+    void frameBegin() override {
+        NODEBUG(_Pragma("omp parallel for"))  // Build submesh BVHs in parallel
+        for (size_t i = 0; i < m_submeshes.size(); i++) {
+            auto& submesh = m_submeshes[i];
+            if (!submesh.bvh.isBuilt())
+                submesh.bvh.build(submesh.faces);
+        }
+    }
+
 private:
     bool m_hasNormals;
     bool m_hasUVs;
@@ -85,5 +91,10 @@ public:
         }
 
         return hit;
+    }
+
+    void frameBegin() override {
+        m_transform.updateMatrices();
+        m_mesh->frameBegin();
     }
 };
