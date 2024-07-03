@@ -36,9 +36,12 @@ public:
                     vec3 pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
                     vec3 pixelSamplePoint = pixelCenter + jitteredSamplePoint;
                     vec3 rayOrigin = m_defocusAngle > 0 ? randomInDefocusDisk() : m_position;
-                    Ray ray(rayOrigin, pixelSamplePoint - rayOrigin);
 
-                    accumulator[uvec2(x, y)] += rayColor(ray, world);
+                    vec3 sampleColor = rayColor(
+                        Ray(rayOrigin, pixelSamplePoint - rayOrigin),
+                        world);
+
+                    accumulator[uvec2(x, y)] += sampleColor;
                 }
             }
 
@@ -82,19 +85,21 @@ private:
         m_defocusDiskV = defocusRadius * v;
     }
 
-    vec3 rayColor(Ray ray, const IHittable& world) const {
+    vec3 rayColor(Ray&& ray, const IHittable& world) const {
         vec3 attenuation = vec3(1);
         vec3 incomingLight = vec3(0);
 
         for (u32 i = 0; i <= m_maxBounces; i++) {
-            auto hit = world.hit(ray, {0.001f, std::numeric_limits<f32>::infinity()});
+            HitRecord hit = world.hit(ray);
             if (!hit.hit) {
                 incomingLight += attenuation * sampleEnvironment(ray);
                 break;  // No hit, return environment
             }
 
-            Material::ScatterOutput scatterOutput = hit.material->scatter(ray, hit);
-            ray = scatterOutput.scatteredRay;
+            hit.point = ray.at(ray.tInterval.max);
+
+            Material::ScatterOutput scatterOutput = hit.material.lock()->scatter(ray, hit);
+            ray = Ray(hit.point, scatterOutput.scatterDirection);
             incomingLight += attenuation * scatterOutput.emission;
             attenuation *= scatterOutput.attenuation;
 

@@ -7,6 +7,7 @@
 #include "Texture.h"
 
 constexpr bool ENABLE_PROGRESS_VIEW = true;
+constexpr auto PROGRESS_VIEW_UPDATE_INTERVAL = std::chrono::seconds(1);
 constexpr auto PROGRESS_VIEW_FILENAME = "progress_view.bmp";
 constexpr auto OUTPUT_FILENAME = "output.exr";
 
@@ -68,10 +69,9 @@ void randomSphereScene(HittableGroup& world, Camera& camera) {
                 }
                 else if (chooseMat < 0.9) {
                     // emissive
-                    auto albedo = vec3(0);
                     auto emission = randomVec<3>() * randomVec<3>();
                     f32 intensity = random<f32>(10, 50);
-                    sphere_material = makeRef<LambertianMaterial>(albedo, emission, intensity);
+                    sphere_material = makeRef<LambertianMaterial>(vec3(0), emission, intensity);
                 }
                 else {
                     // glass
@@ -93,27 +93,41 @@ void randomSphereScene(HittableGroup& world, Camera& camera) {
     world.add(makeRef<Sphere>(vec3(4, 1, 0), 1.0, material3));
 }
 
-void teapotScene(HittableGroup& world, Camera& camera) {
+void teapotDragonScene(HittableGroup& world, Camera& camera) {
     // camera
-    camera.m_position = vec3(0.07, 0.08, 0.13);
-    camera.m_lookAt = vec3(0.015, 0.035, 0.0);
+    camera.m_position = vec3(0, 0.1, 0.7);
+    camera.m_lookAt = vec3(0, 0, 0);
     camera.m_fov = 48.0f;
-    // camera.m_defocusAngle = 0.1f;
-    // camera.m_focusDistance = 0.15f;
 
     camera.m_environment = makeRef<Texture<vec3>>(readTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
     auto teapotMesh = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
+    teapotMesh->m_submeshes[0].material = makeRef<DielectricMaterial>(1.5f);
     auto teapot = makeRef<Model>(teapotMesh);
 
-    /*
-    teapot->m_transform.scale(vec3(0.6));
-    teapot->m_transform.rotate(vec3(0, -45, 0));
-    teapot->m_transform.move(0.03f * vec3(1, 1, 0));
-    */
+    teapot->m_transform.scale(vec3(1.5));
+    teapot->m_transform.move(vec3(-0.12, -0.1, 0.3));
+    teapot->m_transform.rotate(glm::radians(vec3(0, -20, 0)));
 
     world.add(teapot);
+
+    auto dragonMesh = makeRef<Mesh>(loadOBJ("resources/dragon.obj"));
+    dragonMesh->m_submeshes[0].material = makeRef<LambertianMaterial>(vec3(0.5, 0.6, 0.8));
+    auto dragon = makeRef<Model>(dragonMesh);
+
+    dragon->m_transform.scale(vec3(0.6));
+    dragon->m_transform.move(vec3(0.1, 0.02, 0.0));
+    dragon->m_transform.rotate(glm::radians(vec3(0, 110, 0)));
+
+    world.add(dragon);
+
+    auto sphere_material = makeRef<LambertianMaterial>(vec3(0), vec3(1, 0, 0), 10);
+    auto sphere = makeRef<Sphere>(vec3(-0.1, 0.15, 0.1), 0.02, sphere_material);
+    world.add(sphere);
+
+    camera.m_defocusAngle = 0.6f;
+    camera.m_focusDistance = glm::distance(camera.m_position, sphere->m_center) - 0.1f;
 }
 
 void tetrahedronScene(HittableGroup& world, Camera& camera) {
@@ -137,23 +151,29 @@ void render() {
     HittableGroup world;
     Camera camera;
 
-    camera.m_imageSize = uvec2(640, 480) / 2U;
+    camera.m_imageSize = uvec2(640, 480);
     camera.m_samples = 1024;
     camera.m_maxBounces = 8;
     f32 gamma = 2.2f;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    teapotScene(world, camera);
+    teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
 
     // render
-    auto sampleFinishCallback = [camera, gamma](const Texture<vec3>& accumulator, u32 sample) {
+    auto progressViewNextUpdate = std::chrono::high_resolution_clock::now();
+    auto sampleFinishCallback = [&](const Texture<vec3>& accumulator, u32 sample) {
         LOG(std::format("{}/{} samples done ({:.1f}%)", sample, camera.m_samples, sample * 100.0f / camera.m_samples));
 
         if (ENABLE_PROGRESS_VIEW) {
-            auto frameSRGB = hdrToSRGB(accumulator, gamma, (f32)sample);
-            writeBMP(PROGRESS_VIEW_FILENAME, frameSRGB);
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            if (progressViewNextUpdate <= currentTime) {
+                auto frameSRGB = hdrToSRGB(accumulator, gamma, (f32)sample);
+                writeBMP(PROGRESS_VIEW_FILENAME, frameSRGB);
+
+                progressViewNextUpdate = currentTime + PROGRESS_VIEW_UPDATE_INTERVAL;
+            }
         }
     };
 

@@ -68,7 +68,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER T cross(const glm::vec<2, T, Q>& a, const glm
 
 /*
  * @param v The incoming vector
- * @param normal The normal vector
+ * @param normal The normal vector, normalized
  */
 MATH_CONSTEXPR MATH_FUNC_QUALIFIER vec3 reflect(const vec3& v, const vec3& normal) {
     return v - 2.0f * glm::dot(v, normal) * normal;
@@ -253,6 +253,15 @@ struct Interval {
     MATH_CONSTEXPR MATH_FUNC_QUALIFIER bool contains(T value) const {
         auto result = value >= min && value <= max;
 
+        if constexpr (std::is_same_v<T, vec3>)  // TODO check for other vector types
+            return glm::all(result);
+        else
+            return result;
+    }
+
+    MATH_CONSTEXPR MATH_FUNC_QUALIFIER bool contains(const Interval& other) const {
+        auto result = other.min >= min && other.max <= max;
+
         if constexpr (std::is_same_v<T, vec3>)
             return glm::all(result);
         else
@@ -268,8 +277,8 @@ struct Interval {
             return result;
     }
 
-    MATH_CONSTEXPR MATH_FUNC_QUALIFIER bool intersects(const Interval& other) const {
-        auto result = min <= other.max && max >= other.min;
+    MATH_CONSTEXPR MATH_FUNC_QUALIFIER bool surrounds(const Interval& other) const {
+        auto result = other.min > min && other.max < max;
 
         if constexpr (std::is_same_v<T, vec3>)
             return glm::all(result);
@@ -281,11 +290,24 @@ struct Interval {
         return {glm::max(min, other.min), glm::min(max, other.max)};
     }
 
+    MATH_CONSTEXPR MATH_FUNC_QUALIFIER bool intersects(const Interval& other) const {
+        auto result = intersection(other).length() > 0;
+
+        if constexpr (std::is_same_v<T, vec3>)
+            return glm::all(result);
+        else
+            return result;
+    }
+
     MATH_CONSTEXPR MATH_FUNC_QUALIFIER Interval boundingUnion(const Interval& other) const {
         return {glm::min(min, other.min), glm::max(max, other.max)};
     }
 
-    MATH_CONSTEXPR MATH_FUNC_QUALIFIER Interval expand(T padding) const {
+    MATH_CONSTEXPR MATH_FUNC_QUALIFIER Interval extendTo(const T& other) const {
+        return {glm::min(min, other), glm::max(max, other)};
+    }
+
+    MATH_CONSTEXPR MATH_FUNC_QUALIFIER Interval pad(T padding) const {
         return Interval(min - padding, max + padding);
     }
 
@@ -321,7 +343,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER static Interval<vec3> Interval<vec3>::univers
  * @param box The AABB to check against
  * @return The tNear and tFar values of the intersection points along the ray, or NANs if there is no intersection
  */
-MATH_CONSTEXPR MATH_FUNC_QUALIFIER std::pair<f32, f32> rayAABBintersection(const vec3& rayOrigin, const vec3& rayDirectionInv, const AABB& box) {
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER Interval<f32> rayAABBintersection(const vec3& rayOrigin, const vec3& rayDirectionInv, const AABB& box) {
     // https://tavianator.com/2011/ray_box.html
     // https://gist.github.com/DomNomNom/46bb1ce47f68d255fd5d
 

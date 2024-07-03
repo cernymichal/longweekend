@@ -37,15 +37,9 @@ public:
         other.m_data = nullptr;
     }
 
-    Texture& operator=(const Texture& other) {
-        this->~Texture();
-        new (this) Texture(other);
-    }
+    Texture& operator=(const Texture& other) = delete;
 
-    Texture& operator=(Texture&& other) noexcept {
-        this->~Texture();
-        new (this) Texture(std::move(other));
-    }
+    Texture& operator=(Texture&& other) = delete;
 
     ~Texture() {
         if (!m_data)
@@ -54,7 +48,7 @@ public:
         delete[] m_data;
     }
 
-    const T& sampleI(const vec2& uv) const {
+    const T sampleI(const vec2& uv) const {
         auto sampleUV = uv * vec2(m_size - uvec2(1));
 
         if (glm::all(glm::fract(sampleUV) <= vec2(0.001f)))

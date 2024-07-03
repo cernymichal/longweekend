@@ -1,27 +1,27 @@
 #pragma once
 
+#include "Face.h"
 #include "Ray.h"
 
 class Material;
 
 struct HitRecord {
+    // Set by the hit function
     bool hit = false;
-    f32 t = 0.0f;
-    vec3 point = vec3(0);
     vec3 normal = vec3(0);
-    bool frontFace = false;
-    vec2 uv = vec2(0);
-    Ref<Material> material;
+    vec3 barycentric = vec3(0);  // TODO only two
+    const Face* face = nullptr;
+    WeakRef<const Material> material;
+    vec2 uv = vec2(0);  // TODO remove
 
-    void setNormal(const Ray& ray, const vec3& outwardNormal) {
-        // outwardNormal is assumed to be normalized
+    vec3 point; // Set just before scattering
 
-        frontFace = glm::dot(ray.direction, outwardNormal) <= 0;
-        normal = frontFace ? outwardNormal : -outwardNormal;
-    }
+    void transform(const mat4& transform) {
+		normal = glm::normalize(vec3(transform * vec4(normal, 0)));
+	}
 };
 
 class IHittable {
 public:
-    virtual HitRecord hit(const Ray& ray, Interval<f32> tInterval) const = 0;
+    virtual HitRecord hit(Ray& ray) const = 0;
 };

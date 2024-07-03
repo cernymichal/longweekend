@@ -10,28 +10,28 @@ public:
 
     Sphere(const vec3& center, f32 radius, const Ref<Material>& material) : m_center(center), m_radius(radius), m_material(material) {}
 
-    HitRecord hit(const Ray& ray, Interval<f32> tInterval) const override {
-        auto a = glm::length2(ray.direction);
-        auto halfB = glm::dot(ray.direction, ray.origin - m_center);
-        auto c = glm::dot(ray.origin - m_center, ray.origin - m_center) - m_radius * m_radius;
-        auto discriminant = halfB * halfB - a * c;
+    HitRecord hit(Ray& ray) const override {
+        f32 a = glm::length2(ray.direction);
+        f32 halfB = glm::dot(ray.direction, ray.origin - m_center);
+        f32 c = glm::dot(ray.origin - m_center, ray.origin - m_center) - m_radius * m_radius;
+        f32 discriminant = halfB * halfB - a * c;
 
         if (discriminant < 0)
             return HitRecord();
 
-        auto t = (-halfB - sqrt(discriminant)) / a;
+        f32 t = (-halfB - sqrt(discriminant)) / a;
 
-        if (!tInterval.surrounds(t)) {
+        // TODO only front face intersection based on material
+        if (!ray.tInterval.surrounds(t)) {
             t = (-halfB + sqrt(discriminant)) / a;
-            if (!tInterval.surrounds(t))
+            if (!ray.tInterval.surrounds(t))
                 return HitRecord();
         }
 
-        HitRecord hit{true};
-        hit.t = t;
-        hit.point = ray.at(t);
-        auto outwardNormal = (ray.at(t) - m_center) / m_radius;
-        hit.setNormal(ray, outwardNormal);
+        HitRecord hit;
+        hit.hit = true;
+        ray.tInterval.max = t;
+        hit.normal = (ray.at(t) - m_center) / m_radius;
         hit.material = m_material;
 
         return hit;

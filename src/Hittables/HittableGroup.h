@@ -16,16 +16,13 @@ public:
         m_hittables.clear();
     }
 
-    HitRecord hit(const Ray& ray, Interval<f32> tInterval) const override {
-        HitRecord hit{false};
+    HitRecord hit(Ray& ray) const override {
+        HitRecord hit;
 
         for (const auto& hittable : m_hittables) {
-            auto childHit = hittable->hit(ray, tInterval);
-
-            if (childHit.hit) {
+            HitRecord childHit = hittable->hit(ray);
+            if (childHit.hit)
                 hit = childHit;
-                tInterval.max = hit.t;
-            }
         }
 
         return hit;

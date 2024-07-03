@@ -8,8 +8,8 @@ public:
     std::string m_name = "Unnamed";
 
     struct ScatterOutput {
-        bool didScatter;
-        Ray scatteredRay;
+        bool didScatter = true;
+        vec3 scatterDirection;
         vec3 attenuation = vec3(1);
         vec3 emission = vec3(0);
     };
@@ -38,8 +38,7 @@ public:
             scatterDirection = hit.normal;
 
         return {
-            .didScatter = true,
-            .scatteredRay = Ray(hit.point, scatterDirection),
+            .scatterDirection = scatterDirection,
             .attenuation = m_albedo,
             .emission = m_emission * m_emissionIntensity};
     }
@@ -60,7 +59,7 @@ public:
 
         return {
             .didScatter = glm::dot(reflected, hit.normal) > 0,
-            .scatteredRay = Ray(hit.point, reflected),
+            .scatterDirection = reflected,
             .attenuation = m_albedo};
     }
 };
@@ -75,21 +74,22 @@ public:
 
     virtual ScatterOutput scatter(const Ray& ray, const HitRecord& hit) const override {
         auto normalizedDirection = glm::normalize(ray.direction);
-        auto refractionRatio = hit.frontFace ? 1.0f / m_ir : m_ir;
+        bool frontFaceHit = glm::dot(normalizedDirection, hit.normal) <= 0;
+        auto refractionRatio = frontFaceHit ? 1.0f / m_ir : m_ir;
+        vec3 outwardNormal = frontFaceHit ? hit.normal : -hit.normal;
 
-        auto cosTheta = std::min(glm::dot(-normalizedDirection, hit.normal), 1.0f);
+        auto cosTheta = std::min(glm::dot(-normalizedDirection, outwardNormal), 1.0f);
         auto sinTheta = std::sqrt(1.0f - cosTheta * cosTheta);
 
-        vec3 outgoingDirection;
+        vec3 scatterDirection;
 
         bool totalInternalReflection = refractionRatio * sinTheta > 1.0f;
         if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > random<f32>())
-            outgoingDirection = reflect(normalizedDirection, hit.normal);
+            scatterDirection = reflect(normalizedDirection, outwardNormal);
         else
-            outgoingDirection = ::refract(normalizedDirection, hit.normal, refractionRatio);
+            scatterDirection = ::refract(normalizedDirection, outwardNormal, refractionRatio);
 
         return {
-            .didScatter = true,
-            .scatteredRay = Ray(hit.point, outgoingDirection)};
+            .scatterDirection = scatterDirection};
     }
 };
