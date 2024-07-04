@@ -120,7 +120,7 @@ private:
         if (m_environment) {
             f32 u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5f;
             f32 v = acos(unitDirection.y) / PI;
-            return m_environment->sampleI({u, v});
+            return m_environment->sampleInterpolated({u, v});
         }
 
         // return glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f)); // sky gradient

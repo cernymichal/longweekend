@@ -41,8 +41,8 @@ public:
         if (glm::any(glm::abs(scatterDirection) < vec3(1e-8f)))
             scatterDirection = hit.normal;
 
-        auto albedo = m_albedoTexture ? m_albedoTexture->sampleI(hit.uv) : m_albedo;
-        auto emission = m_emissionTexture ? m_emissionTexture->sampleI(hit.uv) : m_emission;
+        auto albedo = m_albedoTexture ? m_albedoTexture->sampleInterpolated(hit.uv) : m_albedo;
+        auto emission = m_emissionTexture ? m_emissionTexture->sampleInterpolated(hit.uv) : m_emission;
 
         // TODO normal mapping
 

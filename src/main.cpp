@@ -167,20 +167,38 @@ void reimuScene(HittableGroup& world, Camera& camera) {
     world.add(reimu);
 }
 
+void sponzaScene(HittableGroup& world, Camera& camera) {
+	// camera
+	camera.m_position = vec3(8, 1.5, 0);
+	camera.m_lookAt = vec3(6, 1.7, 0);
+	camera.m_fov = 50.0f;
+
+	camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
+
+	// world
+	auto sponzaMesh = makeRef<Mesh>(loadOBJ("resources/sponza/sponza.obj"));
+	auto sponza = makeRef<Model>(sponzaMesh);
+
+	sponza->m_transform.scale(vec3(1.0 / 100.0));
+
+	world.add(sponza);
+}
+
 void render() {
     HittableGroup world;
     Camera camera;
 
-    camera.m_imageSize = uvec2(640, 480) * 2U;
+    camera.m_imageSize = uvec2(640, 480) / 2U;
     camera.m_samples = 300;
-    camera.m_maxBounces = 8;
+    camera.m_maxBounces = 16;
     f32 gamma = 2.2f;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
     // teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
-    reimuScene(world, camera);
+    // reimuScene(world, camera);
+    sponzaScene(world, camera);
 
     // render
     auto progressViewNextUpdate = std::chrono::high_resolution_clock::now();

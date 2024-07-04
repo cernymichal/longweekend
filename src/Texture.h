@@ -49,7 +49,7 @@ public:
     }
 
     // Bilinear interpolation
-    const T sampleI(const vec2& uv) const {
+    const T sampleInterpolated(const vec2& uv) const {
         vec2 sampleUV = uv * vec2(m_size - uvec2(1));
         f32 tx = sampleUV.x - floor(sampleUV.x);
         f32 ty = sampleUV.y - floor(sampleUV.y);
@@ -82,12 +82,19 @@ public:
         return x0 * (1 - ty) + x1 * ty;
     }
 
+    inline const T& sample(const vec2& uv) const {
+        vec2 sampleUV = uv * vec2(m_size - uvec2(1));
+        return sample(uvec2(sampleUV));
+    }
+
     inline const T& sample(const uvec2& uv) const {
-        return m_data[uv.y * m_size.x + uv.x];
+        uvec2 sampleUV = repeatUV(uv);
+        return m_data[sampleUV.y * m_size.x + sampleUV.x];
     }
 
     inline T& sample(const uvec2& uv) {
-        return m_data[uv.y * m_size.x + uv.x];
+        uvec2 sampleUV = repeatUV(uv);
+        return m_data[sampleUV.y * m_size.x + sampleUV.x];
     }
 
     inline const T& operator[](const uvec2& uv) const { return sample(uv); }
@@ -109,4 +116,8 @@ private:
     uvec2 m_size = uvec2(0);
     u8 m_channels = 0;
     T* m_data = nullptr;
+
+    inline uvec2 repeatUV(const uvec2& uv) const {
+        return uv % m_size;
+    }
 };
