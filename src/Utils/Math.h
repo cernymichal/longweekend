@@ -114,34 +114,36 @@ struct TriangleIntersection {
  * @param rayOrigin The origin of the ray
  * @param rayDirection The direction of the ray
  * @param vertices The vertices of the triangle
+ * @param intersectBackfacing Whether to intersect back facing triangles
  * @return The t from the ray origin along the rayDirection the intersection point, or NAN if there is no intersection, together with the barycentric coordinates
  *
  * @note back facing triangles are not intersected
  */
-MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleIntersection rayTriangleIntersectionCoordinates(const vec3& rayOrigin, const vec3& rayDirection, const MATH_ARRAY<vec3, 3>& vertices) {
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleIntersection rayTriangleIntersectionCoordinates(const vec3& rayOrigin, const vec3& rayDirection, const MATH_ARRAY<vec3, 3>& vertices, bool intersectBackfacing = false) {
     // Möller–Trumbore intersection algorithm
-    auto edge1 = vertices[1] - vertices[0];
-    auto edge2 = vertices[2] - vertices[0];
-    auto P = glm::cross(rayDirection, edge2);
-    auto determinant = glm::dot(edge1, P);
+    vec3 edge1 = vertices[1] - vertices[0];
+    vec3 edge2 = vertices[2] - vertices[0];
+    vec3 P = glm::cross(rayDirection, edge2);
+    f32 determinant = glm::dot(edge1, P);
 
     // if the determinant is negative, the triangle is back facing
     // if the determinant is close to 0, the ray misses the triangle
-    if (determinant < glm::epsilon<f32>())
+    if (!intersectBackfacing && determinant < glm::epsilon<f32>() ||
+        (intersectBackfacing && std::abs(determinant) < glm::epsilon<f32>()))
         return {NAN};
 
-    auto determinantInv = 1.0f / determinant;
-    auto T = rayOrigin - vertices[0];
-    auto v = glm::dot(T, P) * determinantInv;
+    f32 determinantInv = 1.0f / determinant;
+    vec3 T = rayOrigin - vertices[0];
+    f32 v = glm::dot(T, P) * determinantInv;
     if (v < 0 || v > 1)
         return {NAN};
 
-    auto Q = glm::cross(T, edge1);
-    auto w = glm::dot(rayDirection, Q) * determinantInv;
+    vec3 Q = glm::cross(T, edge1);
+    f32 w = glm::dot(rayDirection, Q) * determinantInv;
     if (w < 0 || v + w > 1)
         return {NAN};
 
-    auto t = glm::dot(edge2, Q) * determinantInv;
+    f32 t = glm::dot(edge2, Q) * determinantInv;
     if (t < 0)
         return {NAN};
 
@@ -154,12 +156,13 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleIntersection rayTriangleIntersectionC
  * @param rayOrigin The origin of the ray
  * @param rayDirection The direction of the ray
  * @param vertices The vertices of the triangle
+ * @param intersectBackfacing Whether to intersect back facing triangles
  * @return The t from the ray origin along the rayDirection the intersection point, or NAN if there is no intersection
  *
  * @note back facing triangles are not intersected
  */
-MATH_CONSTEXPR MATH_FUNC_QUALIFIER f32 rayTriangleIntersection(const vec3& rayOrigin, const vec3& rayDirection, const MATH_ARRAY<vec3, 3>& vertices) {
-    return rayTriangleIntersectionCoordinates(rayOrigin, rayDirection, vertices).t;
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER f32 rayTriangleIntersection(const vec3& rayOrigin, const vec3& rayDirection, const MATH_ARRAY<vec3, 3>& vertices, bool intersectBackfacing = false) {
+    return rayTriangleIntersectionCoordinates(rayOrigin, rayDirection, vertices, intersectBackfacing).t;
 }
 
 /*

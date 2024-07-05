@@ -8,7 +8,7 @@ constexpr u32 BVH_MAX_FACES_PER_LEAF = 32;
 
 class BVH {
 public:
-    HitRecord intersect(Ray& ray) const;
+    HitRecord intersect(Ray& ray, bool intersectBackfacing = false) const;
 
     void build(std::vector<Face>& faces);
 

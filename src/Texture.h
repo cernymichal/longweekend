@@ -50,7 +50,7 @@ public:
 
     // Bilinear interpolation
     const T sampleInterpolated(const vec2& uv) const {
-        vec2 sampleUV = uv * vec2(m_size - uvec2(1));
+        vec2 sampleUV = uv * vec2(m_size);
         f32 tx = sampleUV.x - floor(sampleUV.x);
         f32 ty = sampleUV.y - floor(sampleUV.y);
         sampleUV = glm::floor(sampleUV);
@@ -83,17 +83,17 @@ public:
     }
 
     inline const T& sample(const vec2& uv) const {
-        vec2 sampleUV = uv * vec2(m_size - uvec2(1));
+        vec2 sampleUV = uv * vec2(m_size);
         return sample(uvec2(sampleUV));
     }
 
     inline const T& sample(const uvec2& uv) const {
-        uvec2 sampleUV = repeatUV(uv);
+        uvec2 sampleUV = uv % m_size;  // Repeat texture
         return m_data[sampleUV.y * m_size.x + sampleUV.x];
     }
 
     inline T& sample(const uvec2& uv) {
-        uvec2 sampleUV = repeatUV(uv);
+        uvec2 sampleUV = uv % m_size;  // Repeat texture
         return m_data[sampleUV.y * m_size.x + sampleUV.x];
     }
 
@@ -116,8 +116,4 @@ private:
     uvec2 m_size = uvec2(0);
     u8 m_channels = 0;
     T* m_data = nullptr;
-
-    inline uvec2 repeatUV(const uvec2& uv) const {
-        return uv % m_size;
-    }
 };

@@ -3,6 +3,7 @@
 #include "BVH/BVH.h"
 #include "Face.h"
 #include "IHittable.h"
+#include "Material.h"
 #include "Transform.h"
 
 class Mesh : public IHittable {
@@ -25,7 +26,8 @@ public:
 
         // Check each submesh for intersection
         for (const auto& submesh : m_submeshes) {
-            HitRecord submeshHit = submesh.bvh.intersect(ray);
+            bool intersectBackfacing = submesh.material->scatterFunction == dielectricScatter;
+            HitRecord submeshHit = submesh.bvh.intersect(ray, intersectBackfacing);
 
             if (submeshHit.hit) {
                 hit = submeshHit;

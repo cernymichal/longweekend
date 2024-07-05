@@ -99,7 +99,16 @@ private:
 
             hit.point = ray.at(ray.tInterval.max);
 
-            Material::ScatterOutput scatterOutput = hit.material.lock()->scatter(ray, hit);
+            auto material = hit.material.lock();
+            ScatterOutput scatterOutput;
+            if (material->scatterFunction)
+                scatterOutput = material->scatterFunction(*material, ray, hit);
+            else {
+                LOG(std::format("Scatter function not set for material: {}", material->name));
+                scatterOutput = {
+                    .scatterDirection = hit.normal + randomUnitVec<3>()};
+            }
+
             ray = Ray(hit.point, scatterOutput.scatterDirection);
             incomingLight += attenuation * scatterOutput.emission;
             attenuation *= scatterOutput.albedo;

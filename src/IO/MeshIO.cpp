@@ -42,22 +42,24 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
     bool hasUVs = !attrib.texcoords.empty();
 
     for (const auto& mtlMaterial : mtlMaterials) {
-        auto material = makeRef<LambertianMaterial>();
-        material->m_name = mtlMaterial.name;
-        material->m_albedo = std::bit_cast<vec3>(mtlMaterial.diffuse);
-        material->m_emission = std::bit_cast<vec3>(mtlMaterial.emission);
-        material->m_emissionIntensity = material->m_emission != vec3(0) ? 1.0f : 0.0f;
+        auto material = makeRef<Material>();
+        *material = {
+            .name = mtlMaterial.name,
+            .albedo = std::bit_cast<vec3>(mtlMaterial.diffuse),
+            .emission = std::bit_cast<vec3>(mtlMaterial.emission),
+            .emissionIntensity = material->emission != vec3(0) ? 1.0f : 0.0f,
+        };
 
         // TODO support texture options
         // TODO share textures
         if (!mtlMaterial.diffuse_texname.empty())
-            material->m_albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.diffuse_texname, true));
+            material->albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.diffuse_texname, true));
 
         if (!mtlMaterial.emissive_texname.empty())
-            material->m_emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.emissive_texname, true));
+            material->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.emissive_texname, true));
 
         if (!mtlMaterial.normal_texname.empty())
-            material->m_normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.normal_texname, true));
+            material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.normal_texname, true));
 
         auto& submesh = submeshes.emplace_back();
         submesh.material = material;
@@ -82,7 +84,7 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
 
     if (noMaterialSubmesh.faces.size() > 0) {
         LOG("Mesh has faces without material");
-        noMaterialSubmesh.material = makeRef<LambertianMaterial>();
+        noMaterialSubmesh.material = makeRef<Material>();
         submeshes.push_back(noMaterialSubmesh);
     }
 

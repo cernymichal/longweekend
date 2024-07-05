@@ -1,6 +1,6 @@
 #include "BVH.h"
 
-HitRecord BVH::intersect(Ray& ray) const {
+HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
     HitRecord hit;
 
     std::array<u32, BVH_MAX_DEPTH> stack;
@@ -19,9 +19,11 @@ HitRecord BVH::intersect(Ray& ray) const {
             // Leaf node
             for (u32 i = node.faceIndex; i < node.faceIndex + node.faceCount; i++) {
                 const Face& face = m_faces->at(i);
-                auto [t, barycentric] = rayTriangleIntersectionCoordinates(ray.origin, ray.direction, face.vertices);
+                auto [t, barycentric] = rayTriangleIntersectionCoordinates(ray.origin, ray.direction, face.vertices, intersectBackfacing);
 
                 if (!isnan(t) && ray.tInterval.surrounds(t)) {
+                    // TODO reject if triangle is almost perpendicular to ray
+
                     hit.hit = true;
                     hit.face = &face;
                     hit.barycentric = barycentric;
@@ -80,9 +82,11 @@ void BVH::build(std::vector<Face>& faces) {
         faceAABBs.push_back(aabb);
     }
 
-    m_nodes.push_back({.aabb = AABB::empty(),
-                       .faceCount = (u32)faces.size(),
-                       .faceIndex = 0});
+    m_nodes.push_back({
+        .aabb = AABB::empty(),
+        .faceCount = (u32)faces.size(),
+        .faceIndex = 0,
+    });
 
     std::queue<std::pair<u32, u32>> queue;
     queue.push({0, 1});
@@ -129,11 +133,13 @@ void BVH::build(std::vector<Face>& faces) {
         // Split node
         Node leftChild = {
             .faceCount = j - currentNode.faceIndex,
-            .faceIndex = currentNode.faceIndex};
+            .faceIndex = currentNode.faceIndex,
+        };
 
         Node rightChild = {
             .faceCount = currentNode.faceCount - leftChild.faceCount,
-            .faceIndex = j};
+            .faceIndex = j,
+        };
 
         if (leftChild.faceCount == 0 || rightChild.faceCount == 0)
             continue;  // TODO handle this case, try another axis?

@@ -3,7 +3,7 @@
 #include "Face.h"
 #include "Ray.h"
 
-class Material;
+struct Material;
 
 struct HitRecord {
     // Set by the hit function

@@ -22,10 +22,28 @@ void sphereScene(HittableGroup& world, Camera& camera) {
     camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto groundMaterial = makeRef<LambertianMaterial>(vec3(0.8, 0.8, 0.0));
-    auto centerMaterial = makeRef<LambertianMaterial>(vec3(0.1, 0.2, 0.5));
-    auto leftMaterial = makeRef<DielectricMaterial>(1.5f);
-    auto rightMaterial = makeRef<MetalMaterial>(vec3(0.8, 0.6, 0.2), 0.0f);
+    auto groundMaterial = makeRef<Material>();
+    *groundMaterial = {
+        .albedo = vec3(0.8, 0.8, 0.0),
+    };
+
+    auto centerMaterial = makeRef<Material>();
+    *centerMaterial = {
+        .albedo = vec3(0.1, 0.2, 0.5),
+    };
+
+    auto leftMaterial = makeRef<Material>();
+    *leftMaterial = {
+        .ir = 1.5f,
+        .scatterFunction = dielectricScatter,
+    };
+
+    auto rightMaterial = makeRef<Material>();
+    *rightMaterial = {
+        .albedo = vec3(0.8, 0.6, 0.2),
+        .fuzziness = 0.0f,
+        .scatterFunction = metallicScatter,
+    };
 
     world.add(makeRef<Sphere>(vec3(0.0, -100.5, -1.0), 100.0f, groundMaterial));
     world.add(makeRef<Sphere>(vec3(0.0, 0.0, -1), 0.5f, centerMaterial));
@@ -45,8 +63,11 @@ void randomSphereScene(HittableGroup& world, Camera& camera) {
     camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto ground_material = makeRef<LambertianMaterial>(vec3(0.5, 0.5, 0.5));
-    world.add(makeRef<Sphere>(vec3(0, -1000, 0), 1000, ground_material));
+    auto groundMaterial = makeRef<Material>();
+    *groundMaterial = {
+        .albedo = vec3(0.5, 0.5, 0.5),
+    };
+    world.add(makeRef<Sphere>(vec3(0, -1000, 0), 1000, groundMaterial));
 
     for (i32 a = -11; a < 11; a++) {
         for (i32 b = -11; b < 11; b++) {
@@ -54,42 +75,61 @@ void randomSphereScene(HittableGroup& world, Camera& camera) {
             vec3 center(a + 0.9 * random<f64>(), 0.2, b + 0.9 * random<f64>());
 
             if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
-                Ref<Material> sphere_material;
+                auto sphereMaterial = makeRef<Material>();
 
                 if (chooseMat < 0.7) {
                     // diffuse
-                    auto albedo = randomVec<3>() * randomVec<3>();
-                    sphere_material = makeRef<LambertianMaterial>(albedo);
+                    *sphereMaterial = {
+                        .albedo = randomVec<3>() * randomVec<3>(),
+                    };
                 }
                 else if (chooseMat < 0.8) {
                     // metal
-                    auto albedo = randomVec<3>(vec3(0.5), vec3(1));
-                    auto fuzz = random<f64>(0, 0.5);
-                    sphere_material = makeRef<MetalMaterial>(albedo, fuzz);
+                    *sphereMaterial = {
+                        .albedo = randomVec<3>(vec3(0.5), vec3(1)),
+                        .fuzziness = random<f32>(0, 0.5),
+                        .scatterFunction = metallicScatter,
+                    };
                 }
                 else if (chooseMat < 0.9) {
                     // emissive
-                    auto emission = randomVec<3>() * randomVec<3>();
-                    f32 intensity = random<f32>(10, 50);
-                    sphere_material = makeRef<LambertianMaterial>(vec3(0), emission, intensity);
+                    *sphereMaterial = {
+                        .emission = randomVec<3>() * randomVec<3>(),
+                        .emissionIntensity = random<f32>(10, 50),
+                    };
                 }
                 else {
                     // glass
-                    sphere_material = makeRef<DielectricMaterial>(1.5);
+                    *sphereMaterial = {
+                        .ir = 1.5f,
+                        .scatterFunction = dielectricScatter,
+                    };
                 }
 
-                world.add(makeRef<Sphere>(center, 0.2, sphere_material));
+                world.add(makeRef<Sphere>(center, 0.2, sphereMaterial));
             }
         }
     }
 
-    auto material1 = makeRef<DielectricMaterial>(1.5);
+    auto material1 = makeRef<Material>();
+    *material1 = {
+        .ir = 1.5f,
+        .scatterFunction = dielectricScatter,
+    };
     world.add(makeRef<Sphere>(vec3(0, 1, 0), 1.0, material1));
 
-    auto material2 = makeRef<LambertianMaterial>(vec3(0.4, 0.2, 0.1));
+    auto material2 = makeRef<Material>();
+    *material2 = {
+        .albedo = vec3(0.4, 0.2, 0.1),
+    };
     world.add(makeRef<Sphere>(vec3(-4, 1, 0), 1.0, material2));
 
-    auto material3 = makeRef<MetalMaterial>(vec3(0.7, 0.6, 0.5), 0.0);
+    auto material3 = makeRef<Material>();
+    *material3 = {
+        .albedo = vec3(0.7, 0.6, 0.5),
+        .fuzziness = 0.0f,
+        .scatterFunction = metallicScatter,
+    };
     world.add(makeRef<Sphere>(vec3(4, 1, 0), 1.0, material3));
 }
 
@@ -103,7 +143,10 @@ void teapotDragonScene(HittableGroup& world, Camera& camera) {
 
     // world
     auto teapotMesh = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
-    teapotMesh->m_submeshes[0].material = makeRef<DielectricMaterial>(1.5f);
+    *teapotMesh->m_submeshes[0].material = {
+        .ir = 1.5f,
+        .scatterFunction = dielectricScatter,
+    };
     auto teapot = makeRef<Model>(teapotMesh);
 
     teapot->m_transform.scale(vec3(1.5));
@@ -113,7 +156,9 @@ void teapotDragonScene(HittableGroup& world, Camera& camera) {
     world.add(teapot);
 
     auto dragonMesh = makeRef<Mesh>(loadOBJ("resources/dragon.obj"));
-    dragonMesh->m_submeshes[0].material = makeRef<LambertianMaterial>(vec3(0.5, 0.6, 0.8));
+    *dragonMesh->m_submeshes[0].material = {
+        .albedo = vec3(0.5, 0.6, 0.8),
+    };
     auto dragon = makeRef<Model>(dragonMesh);
 
     dragon->m_transform.scale(vec3(0.6));
@@ -122,7 +167,12 @@ void teapotDragonScene(HittableGroup& world, Camera& camera) {
 
     world.add(dragon);
 
-    auto sphere_material = makeRef<LambertianMaterial>(vec3(0), vec3(1, 0, 0), 10);
+    auto sphere_material = makeRef<Material>();
+    *sphere_material = {
+        .albedo = vec3(0),
+        .emission = vec3(1),
+        .emissionIntensity = 10.0f,
+    };
     auto sphere = makeRef<Sphere>(vec3(-0.1, 0.15, 0.1), 0.02, sphere_material);
 
     world.add(sphere);
@@ -168,37 +218,37 @@ void reimuScene(HittableGroup& world, Camera& camera) {
 }
 
 void sponzaScene(HittableGroup& world, Camera& camera) {
-	// camera
-	camera.m_position = vec3(8, 1.5, 0);
-	camera.m_lookAt = vec3(6, 1.7, 0);
-	camera.m_fov = 50.0f;
+    // camera
+    camera.m_position = vec3(8, 1.5, 0);
+    camera.m_lookAt = vec3(6, 1.7, 0);
+    camera.m_fov = 50.0f;
 
-	camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
+    camera.m_environment = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
-	// world
-	auto sponzaMesh = makeRef<Mesh>(loadOBJ("resources/sponza/sponza.obj"));
-	auto sponza = makeRef<Model>(sponzaMesh);
+    // world
+    auto sponzaMesh = makeRef<Mesh>(loadOBJ("resources/sponza/sponza.obj"));
+    auto sponza = makeRef<Model>(sponzaMesh);
 
-	sponza->m_transform.scale(vec3(1.0 / 100.0));
+    sponza->m_transform.scale(vec3(1.0 / 100.0));
 
-	world.add(sponza);
+    world.add(sponza);
 }
 
 void render() {
     HittableGroup world;
     Camera camera;
 
-    camera.m_imageSize = uvec2(640, 480) / 2U;
-    camera.m_samples = 300;
-    camera.m_maxBounces = 16;
+    camera.m_imageSize = uvec2(1200, 675);
+    camera.m_samples = 512;
+    camera.m_maxBounces = 8;
     f32 gamma = 2.2f;
 
-    // randomSphereScene(world, camera);
+    randomSphereScene(world, camera);
     // sphereScene(world, camera);
     // teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
     // reimuScene(world, camera);
-    sponzaScene(world, camera);
+    // sponzaScene(world, camera);
 
     // render
     auto progressViewNextUpdate = std::chrono::high_resolution_clock::now();
