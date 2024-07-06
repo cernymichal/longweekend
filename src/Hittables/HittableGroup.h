@@ -29,7 +29,7 @@ public:
     }
 
     void frameBegin() override {
-        NODEBUG(_Pragma("omp parallel for"))  // Initialize all hittables in parallel - BVH building, etc.
+        NODEBUG_ONLY(_Pragma("omp parallel for"))  // Initialize all hittables in parallel - BVH building, etc.
         for (size_t i = 0; i < m_hittables.size(); i++)
             m_hittables[i]->frameBegin();
     }

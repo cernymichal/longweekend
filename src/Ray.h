@@ -9,6 +9,11 @@ struct Ray {
     vec3 invDirection;
     Interval<f32> tInterval = RAY_INITIAL_INTERVAL;
 
+#ifdef BVH_TEST
+    u32 aabbTestCount = 0;
+    u32 faceTestCount = 0;
+#endif
+
     explicit Ray() = default;
 
     Ray(const vec3& origin, const vec3& direction, Interval<f32> tInterval = RAY_INITIAL_INTERVAL)
@@ -33,11 +38,23 @@ struct Ray {
             transformedTInterval.max = glm::length(tMaxVec) / transformedDirectionLength;
         }
 
-        return Ray(transformedOrigin, transformedDirection, transformedTInterval);
+        Ray transformedRay(transformedOrigin, transformedDirection, transformedTInterval);
+
+#ifdef BVH_TEST
+        transformedRay.aabbTestCount = aabbTestCount;
+        transformedRay.faceTestCount = faceTestCount;
+#endif
+
+        return transformedRay;
     }
 
     inline void updateFromTransformedRay(const Ray& transformedRay, const mat4& inverseTransform) {
         vec3 tMaxVec = inverseTransform * vec4(transformedRay.tInterval.max * transformedRay.direction, 0);
         tInterval.max = glm::length(tMaxVec) / glm::length(direction);
+
+#ifdef BVH_TEST
+        aabbTestCount = transformedRay.aabbTestCount;
+        faceTestCount = transformedRay.faceTestCount;
+#endif
     }
 };

@@ -56,3 +56,25 @@ SCATTER_FUNCTION(dielectricScatter) {
         .albedo = vec3(1),
     };
 }
+
+SCATTER_FUNCTION(environmentScatter) {
+    auto unitDirection = glm::normalize(ray.direction);
+    hit.normal = -unitDirection;
+
+    vec3 emission;
+    if (material.emissionTexture) {
+        f32 u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5f;
+        f32 v = acos(unitDirection.y) / PI;
+        emission = material.emissionTexture->sampleInterpolated({u, v});
+    }
+    else
+        emission = material.emission;
+
+    // emission =  glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f)); // sky gradient
+
+    return {
+        .didScatter = false,
+        .albedo = vec3(1),
+        .emission = emission * material.emissionIntensity,
+    };
+}

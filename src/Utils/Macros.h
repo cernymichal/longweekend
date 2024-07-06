@@ -2,12 +2,12 @@
 
 #ifdef _DEBUG
 
-#define DEBUG(x) x
-#define NODEBUG(x)
+#define DEBUG_ONLY(x) x
+#define NODEBUG_ONLY(x)
 
 #else
 
-#define DEBUG(x)
-#define NODEBUG(x) x
+#define DEBUG_ONLY(x)
+#define NODEBUG_ONLY(x) x
 
 #endif

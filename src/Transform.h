@@ -42,12 +42,12 @@ public:
     }
 
     const mat4& modelMatrix() const {
-        DEBUG(if (!m_cacheValid) LOG("Using invalidated model matrix!");)
+        DEBUG_ONLY(if (!m_cacheValid) LOG("Using invalidated model matrix!");)
         return m_modelMatrix;
     }
 
     const mat4& modelMatrixInverse() const {
-        DEBUG(if (!m_cacheValid) LOG("Using invalidated model matrix inverse!");)
+        DEBUG_ONLY(if (!m_cacheValid) LOG("Using invalidated model matrix inverse!");)
         return m_modelMatrixInverse;
     }
 

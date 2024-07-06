@@ -11,13 +11,15 @@ struct ScatterOutput {
     vec3 emission = vec3(0);
 };
 
-#define SCATTER_FUNCTION(name) ScatterOutput name(const Material& material, const Ray& ray, const HitRecord& hit)
+#define SCATTER_FUNCTION(name) ScatterOutput name(const Material& material, const Ray& ray, HitRecord& hit)
 
 SCATTER_FUNCTION(lambertianScatter);
 
 SCATTER_FUNCTION(metallicScatter);
 
 SCATTER_FUNCTION(dielectricScatter);
+
+SCATTER_FUNCTION(environmentScatter);
 
 struct Material {
 public:

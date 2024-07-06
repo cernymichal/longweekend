@@ -4,6 +4,18 @@
 #include "Material.h"
 #include "Texture.h"
 
+enum class CameraOutputType : u8 {
+    Color,
+    Depth,
+    Normal,
+    Albedo,
+    Emission,
+#ifdef BVH_TEST
+    AABBTestCount,
+    FaceTestCount,
+#endif
+};
+
 class Camera {
 public:
     glm::uvec2 m_imageSize = glm::uvec2(256, 256);
@@ -18,7 +30,14 @@ public:
     f32 m_defocusAngle = 0.0f;
     f32 m_focusDistance = 10.0f;
 
-    Ref<Texture<vec3>> m_environment;
+    CameraOutputType m_outputType = CameraOutputType::Color;
+
+    Ref<Material> m_environmentMaterial = makeRef<Material>(Material{
+        .name = "Environment",
+        .emission = vec3(0.05f),
+        .emissionIntensity = 1.0f,
+        .scatterFunction = environmentScatter,
+    });
 
     Texture<vec3> render(IHittable& world, std::function<void(const Texture<vec3>&, u32)> sampleFinishCallback) {
         initialize();
@@ -31,14 +50,14 @@ public:
             vec3 jitteredSamplePoint = jitter.x * m_pixelDeltaU + jitter.y * m_pixelDeltaU;
 
             // Sample the whole frame
-            NODEBUG(_Pragma("omp parallel for"))
+            NODEBUG_ONLY(_Pragma("omp parallel for"))
             for (u32 y = 0; y < m_imageSize.y; y++) {
                 for (u32 x = 0; x < m_imageSize.x; x++) {
                     vec3 pixelCenter = m_pixelGridOrigin + static_cast<f32>(x) * m_pixelDeltaU + static_cast<f32>(y) * m_pixelDeltaV;
                     vec3 pixelSamplePoint = pixelCenter + jitteredSamplePoint;
                     vec3 rayOrigin = m_defocusAngle > 0 ? randomInDefocusDisk() : m_position;
 
-                    vec3 sampleColor = rayColor(
+                    vec3 sampleColor = sampleRayPath(
                         Ray(rayOrigin, pixelSamplePoint - rayOrigin),
                         world);
 
@@ -86,16 +105,14 @@ private:
         m_defocusDiskV = defocusRadius * v;
     }
 
-    vec3 rayColor(Ray&& ray, const IHittable& world) const {
+    vec3 sampleRayPath(Ray&& ray, const IHittable& world) const {
         vec3 attenuation = vec3(1);
         vec3 incomingLight = vec3(0);
 
         for (u32 i = 0; i <= m_maxBounces; i++) {
             HitRecord hit = world.hit(ray);
-            if (!hit.hit) {
-                incomingLight += attenuation * sampleEnvironment(ray);
-                break;  // No hit, return environment
-            }
+            if (!hit.hit)
+                hit.material = m_environmentMaterial;
 
             hit.point = ray.at(ray.tInterval.max);
 
@@ -109,32 +126,41 @@ private:
                     .scatterDirection = hit.normal + randomUnitVec<3>()};
             }
 
+            // Output type specific handling
+            if (m_outputType != CameraOutputType::Color) {
+                switch (m_outputType) {
+                    case CameraOutputType::Depth:
+                        return vec3(isinf(ray.tInterval.max) ? 0.0f : 1.0f / (ray.tInterval.max * glm::length(ray.direction) + 1.0f));  // Reverse depth
+                    case CameraOutputType::Normal:
+                        return hit.normal;
+                    case CameraOutputType::Albedo:
+                        return scatterOutput.albedo;
+                    case CameraOutputType::Emission:
+                        return scatterOutput.emission;
+#ifdef BVH_TEST
+                    case CameraOutputType::AABBTestCount:
+                        return vec3(ray.aabbTestCount);
+                    case CameraOutputType::FaceTestCount:
+                        return vec3(ray.faceTestCount);
+#endif
+                    default:
+                        LOG("Unknown camera output type");
+                        return vec3(0);
+                }
+            }
+
             ray = Ray(hit.point, scatterOutput.scatterDirection);
             incomingLight += attenuation * scatterOutput.emission;
             attenuation *= scatterOutput.albedo;
 
-            if (!scatterOutput.didScatter)
-                break;  // Absorbed
-
             // if (glm::length2(attenuation) < 0.001f)
             //     break;  // Early termination for small values, might break high exposure
+
+            if (!scatterOutput.didScatter)
+                break;  // Absorbed
         }
 
         return incomingLight;
-    }
-
-    vec3 sampleEnvironment(const Ray& ray) const {
-        auto unitDirection = normalize(ray.direction);
-
-        if (m_environment) {
-            f32 u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5f;
-            f32 v = acos(unitDirection.y) / PI;
-            return m_environment->sampleInterpolated({u, v});
-        }
-
-        // return glm::mix(vec3(1.0f), vec3(0.5f, 0.7f, 1.0f), 0.5f * (unitDirection.y + 1.0f)); // sky gradient
-
-        return vec3(0.05f);
     }
 
     vec3 randomInDefocusDisk() const {

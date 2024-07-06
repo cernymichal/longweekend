@@ -26,7 +26,7 @@ public:
 
         // Check each submesh for intersection
         for (const auto& submesh : m_submeshes) {
-            bool intersectBackfacing = submesh.material->scatterFunction == dielectricScatter;
+            bool intersectBackfacing = submesh.material->scatterFunction == dielectricScatter; // TODO more general solution
             HitRecord submeshHit = submesh.bvh.intersect(ray, intersectBackfacing);
 
             if (submeshHit.hit) {
@@ -62,7 +62,7 @@ public:
     }
 
     void frameBegin() override {
-        NODEBUG(_Pragma("omp parallel for"))  // Build submesh BVHs in parallel
+        NODEBUG_ONLY(_Pragma("omp parallel for"))  // Build submesh BVHs in parallel
         for (size_t i = 0; i < m_submeshes.size(); i++) {
             auto& submesh = m_submeshes[i];
             if (!submesh.bvh.isBuilt())

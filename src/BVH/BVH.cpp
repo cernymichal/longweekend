@@ -11,6 +11,10 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
         u32 nodeIndex = stack[--stackSize];
         const Node& node = m_nodes[nodeIndex];
 
+#ifdef BVH_TEST
+        ray.aabbTestCount++;
+#endif
+
         auto nodeIntersection = rayAABBintersection(ray.origin, ray.invDirection, node.aabb);
         if (isnan(nodeIntersection.min) || !ray.tInterval.intersects(nodeIntersection))
             continue;
@@ -19,8 +23,12 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
             // Leaf node
             for (u32 i = node.faceIndex; i < node.faceIndex + node.faceCount; i++) {
                 const Face& face = m_faces->at(i);
-                auto [t, barycentric] = rayTriangleIntersectionCoordinates(ray.origin, ray.direction, face.vertices, intersectBackfacing);
 
+#ifdef BVH_TEST
+                ray.faceTestCount++;
+#endif
+
+                auto [t, barycentric] = rayTriangleIntersectionCoordinates(ray.origin, ray.direction, face.vertices, intersectBackfacing);
                 if (!isnan(t) && ray.tInterval.surrounds(t)) {
                     // TODO reject if triangle is almost perpendicular to ray
 

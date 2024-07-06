@@ -23,7 +23,7 @@ inline u8vec3 hdrToSRGB(const vec3& color, f32 gamma = 2.2f, f32 divideBy = 1.0f
 
 inline Texture<u8vec3> hdrToSRGB(const Texture<vec3>& texture, f32 gamma = 2.2f, f32 divideBy = 1.0f) {
     Texture<u8vec3> output(texture.size());
-    NODEBUG(_Pragma("omp parallel for"))
+    NODEBUG_ONLY(_Pragma("omp parallel for"))
     for (u32 y = 0; y < texture.size().y; y++) {
         for (u32 x = 0; x < texture.size().x; x++)
             output[uvec2(x, y)] = hdrToSRGB(texture[uvec2(x, y)], gamma, divideBy);
