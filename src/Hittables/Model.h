@@ -26,7 +26,7 @@ public:
 
         // Check each submesh for intersection
         for (const auto& submesh : m_submeshes) {
-            bool intersectBackfacing = submesh.material->scatterFunction == dielectricScatter; // TODO more general solution
+            bool intersectBackfacing = submesh.material->scatterFunction == dielectricScatter;  // TODO more general solution
             HitRecord submeshHit = submesh.bvh.intersect(ray, intersectBackfacing);
 
             if (submeshHit.hit) {
@@ -65,8 +65,21 @@ public:
         NODEBUG_ONLY(_Pragma("omp parallel for"))  // Build submesh BVHs in parallel
         for (size_t i = 0; i < m_submeshes.size(); i++) {
             auto& submesh = m_submeshes[i];
-            if (!submesh.bvh.isBuilt())
+            if (!submesh.bvh.isBuilt()) {
                 submesh.bvh.build(submesh.faces);
+
+                const auto& stats = submesh.bvh.stats();
+                LOG(std::format(
+                    "{}, submesh #{} BVH:\n\tbuildTime\t= {}ms\n\tfaceCount\t= {}\n\tnodeCount\t= {}\n\tleafCount\t= {}\n\tmaxDepth\t= {}\n\tmaxFacesPerLeaf\t= {}",
+                    m_name,
+                    i,
+                    stats.buildTime.count() / 1000.0f,
+                    stats.faceCount,
+                    stats.nodeCount,
+                    stats.leafCount,
+                    stats.maxDepth,
+                    stats.maxFacesPerLeaf));
+            }
         }
     }
 

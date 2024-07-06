@@ -76,6 +76,10 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
 }
 
 void BVH::build(std::vector<Face>& faces) {
+    m_stats = Stats();
+    m_stats.faceCount = (u32)faces.size();
+    auto start = std::chrono::high_resolution_clock::now();
+
     m_faces = &faces;
     m_nodes.clear();
     // TODO reserve m_nodes
@@ -103,6 +107,7 @@ void BVH::build(std::vector<Face>& faces) {
         u32 currentNodeIndex = queue.front().first;
         Node& currentNode = m_nodes[currentNodeIndex];
         u32 depth = queue.front().second;
+        m_stats.maxDepth = std::max(m_stats.maxDepth, depth);
         queue.pop();
 
         // Calculate node AABB
@@ -111,8 +116,11 @@ void BVH::build(std::vector<Face>& faces) {
             currentNode.aabb = currentNode.aabb.boundingUnion(faceAABBs[i]);
 
         // Dont split if we have too few faces or reached max depth
-        if (currentNode.faceCount <= BVH_MAX_FACES_PER_LEAF || depth >= BVH_MAX_DEPTH)
+        if (currentNode.faceCount <= BVH_MAX_FACES_PER_LEAF || depth >= BVH_MAX_DEPTH) {
+            m_stats.leafCount++;
+            m_stats.maxFacesPerLeaf = std::max(m_stats.maxFacesPerLeaf, currentNode.faceCount);
             continue;
+        }
 
         // Find longest axis
         u32 longestAxis = 0;
@@ -149,8 +157,11 @@ void BVH::build(std::vector<Face>& faces) {
             .faceIndex = j,
         };
 
-        if (leftChild.faceCount == 0 || rightChild.faceCount == 0)
+        if (leftChild.faceCount == 0 || rightChild.faceCount == 0) {
+            m_stats.leafCount++;
+            m_stats.maxFacesPerLeaf = std::max(m_stats.maxFacesPerLeaf, currentNode.faceCount);
             continue;  // TODO handle this case, try another axis?
+        }
 
         currentNode.faceCount = 0;
         currentNode.childIndex = (u32)m_nodes.size();
@@ -164,4 +175,8 @@ void BVH::build(std::vector<Face>& faces) {
     }
 
     m_nodes.shrink_to_fit();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    m_stats.buildTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    m_stats.nodeCount = (u32)m_nodes.size();
 }
