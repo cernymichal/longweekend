@@ -10,18 +10,20 @@ struct Face {
 
 // TODO split vertex and other data
 /*
-
 struct Vertex {
     vec3 position;
-    vec3 normal;
-    vec2 uv;
 };
 
-
-struct Face {
+struct Triangle {
     std::array<u32, 3> vertices;
     vec3 tangent;
     vec3 bitangent;
 };
 
+struct Mesh {
+    std::vector<Vertex> vertices;
+    std::vector<Triangle> triangles;
+    std::vector<vec3> normals;
+    std::vector<vec2> uvs;
+};
 */

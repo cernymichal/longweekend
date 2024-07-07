@@ -53,8 +53,9 @@ public:
             if (m_hasUVs) {
                 vec2 interpolatedUV = hit.barycentric.x * hit.face->uvs[0] + hit.barycentric.y * hit.face->uvs[1] + hit.barycentric.z * hit.face->uvs[2];
                 hit.uv = interpolatedUV;
-                hit.tangent = hit.face->tangent;
-                hit.bitangent = hit.face->bitangent;
+                // Reorthogonalize after normal interpolation
+                hit.tangent = glm::normalize(hit.face->tangent - glm::dot(hit.face->tangent, hit.normal) * hit.normal);
+                hit.bitangent = glm::normalize(hit.face->bitangent - glm::dot(hit.face->bitangent, hit.normal) * hit.normal - glm::dot(hit.face->bitangent, hit.tangent) * hit.tangent);
             }
             else {
                 hit.uv = vec2(0);
@@ -74,7 +75,7 @@ public:
 
                 const auto& stats = submesh.bvh.stats();
                 LOG(std::format(
-                    "{}, submesh #{} BVH:\n\tbuildTime\t= {}ms\n\tfaceCount\t= {}\n\tnodeCount\t= {}\n\tleafCount\t= {}\n\tmaxDepth\t= {}\n\tmaxFacesPerLeaf\t= {}",
+                    "{}, submesh #{} BVH:\n\tbuildTime\t= {}ms\n\tfaceCount\t= {}\n\tnodeCount\t= {}\n\tleafCount\t= {}\n\tmaxDepth\t= {}\n\tavgFacesPerLeaf\t= {}\n\tmaxFacesPerLeaf\t= {}",
                     m_name,
                     i,
                     stats.buildTime.count() / 1000.0f,
@@ -82,6 +83,7 @@ public:
                     stats.nodeCount,
                     stats.leafCount,
                     stats.maxDepth,
+                    (f32)stats.faceCount / stats.leafCount,
                     stats.maxFacesPerLeaf));
             }
         }

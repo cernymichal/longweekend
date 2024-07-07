@@ -256,7 +256,7 @@ void render() {
     HittableGroup world;
     Camera camera;
 
-    // camera.m_outputType = CameraOutputType::Normal;
+    //camera.m_outputType = CameraOutputType::Normal;
 
     camera.m_imageSize = uvec2(640, 480);
     camera.m_samples = 512;

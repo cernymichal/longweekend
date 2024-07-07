@@ -137,7 +137,7 @@ void BVH::build(std::vector<Face>& faces) {
         f32 splitPoint = currentNode.aabb.min[longestAxis] + axisLength / 2;
         u32 j = currentNode.faceIndex + currentNode.faceCount - 1;
         for (u32 i = currentNode.faceIndex; i < j;) {
-            if (faceAABBs[i].max[longestAxis] < splitPoint)
+            if (faceAABBs[i].min[longestAxis] < splitPoint)
                 i++;
             else {
                 std::swap(faces[i], faces[j]);

@@ -90,10 +90,10 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
                 vec2 deltaUV1 = face.uvs[1] - face.uvs[0];
                 vec2 deltaUV2 = face.uvs[2] - face.uvs[0];
 
-                f32 f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+                f32 determinantInv = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
-                face.tangent = glm::normalize(f * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
-                face.bitangent = glm::normalize(f * (-deltaUV2.x * edge1 + deltaUV1.x * edge2));
+                face.tangent = glm::normalize(determinantInv * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
+                face.bitangent = glm::normalize(determinantInv * (-deltaUV2.x * edge1 + deltaUV1.x * edge2));
             }
         }
     }
