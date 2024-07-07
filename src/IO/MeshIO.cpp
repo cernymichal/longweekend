@@ -60,6 +60,8 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
 
         if (!mtlMaterial.normal_texname.empty())
             material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.normal_texname, true));
+        else if (!mtlMaterial.bump_texname.empty())  // TODO check if bump contains 3 channels
+            material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.bump_texname, true));
 
         auto& submesh = submeshes.emplace_back();
         submesh.material = material;
@@ -71,6 +73,7 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
             i32 materialId = mesh.material_ids[faceId];
             auto& face = (materialId >= 0 ? submeshes[materialId] : noMaterialSubmesh).faces.emplace_back();
 
+            // Load face vertices
             assert(mesh.num_face_vertices[faceId] == 3);
             for (size_t vertexId = 0; vertexId < 3; vertexId++) {
                 tinyobj::index_t idx = mesh.indices[3 * faceId + vertexId];
@@ -78,6 +81,19 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
                 face.vertices[vertexId] = vertices[idx.vertex_index];
                 face.normals[vertexId] = idx.normal_index >= 0 ? normals[idx.normal_index] : vec3(0);
                 face.uvs[vertexId] = idx.texcoord_index >= 0 ? texcoords[idx.texcoord_index] : vec2(0);
+            }
+
+            // Calculate tangent and bitangent
+            if (hasUVs) {
+                vec3 edge1 = face.vertices[1] - face.vertices[0];
+                vec3 edge2 = face.vertices[2] - face.vertices[0];
+                vec2 deltaUV1 = face.uvs[1] - face.uvs[0];
+                vec2 deltaUV2 = face.uvs[2] - face.uvs[0];
+
+                f32 f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+                face.tangent = glm::normalize(f * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
+                face.bitangent = glm::normalize(f * (-deltaUV2.x * edge1 + deltaUV1.x * edge2));
             }
         }
     }

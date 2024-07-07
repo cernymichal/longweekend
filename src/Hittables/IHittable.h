@@ -9,6 +9,8 @@ struct HitRecord {
     // Set by the hit function
     bool hit = false;
     vec3 normal = vec3(0);
+    vec3 tangent = vec3(0);
+    vec3 bitangent = vec3(0);
     vec3 barycentric = vec3(0);  // TODO only two
     const Face* face = nullptr;
     WeakRef<const Material> material;
@@ -18,6 +20,8 @@ struct HitRecord {
 
     void transform(const mat4& transform) {
         normal = glm::normalize(vec3(transform * vec4(normal, 0)));
+        tangent = glm::normalize(vec3(transform * vec4(tangent, 0)));
+        bitangent = glm::normalize(vec3(transform * vec4(bitangent, 0)));
     }
 };
 

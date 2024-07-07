@@ -53,9 +53,13 @@ public:
             if (m_hasUVs) {
                 vec2 interpolatedUV = hit.barycentric.x * hit.face->uvs[0] + hit.barycentric.y * hit.face->uvs[1] + hit.barycentric.z * hit.face->uvs[2];
                 hit.uv = interpolatedUV;
+                hit.tangent = hit.face->tangent;
+                hit.bitangent = hit.face->bitangent;
             }
-            else
+            else {
                 hit.uv = vec2(0);
+                // TODO calculate tangent and bitangent
+            }
         }
 
         return hit;

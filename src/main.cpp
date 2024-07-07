@@ -234,11 +234,29 @@ void sponzaScene(HittableGroup& world, Camera& camera) {
     world.add(sponza);
 }
 
+void normalTestScene(HittableGroup& world, Camera& camera) {
+    // camera
+    camera.m_position = vec3(0, 0, 2);
+    camera.m_lookAt = vec3(0, 0, 0);
+    camera.m_fov = 48.0f;
+
+    camera.m_environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
+
+    // world
+    auto cubeMesh = makeRef<Mesh>(loadOBJ("resources/normal_test/normal_test.obj"));
+    auto cube = makeRef<Model>(cubeMesh);
+
+    cube->m_transform.scale(vec3(1.0 / 2.0));
+    cube->m_transform.rotate(glm::radians(vec3(30, -30, 0)));
+
+    world.add(cube);
+}
+
 void render() {
     HittableGroup world;
     Camera camera;
 
-    // camera.m_outputType = CameraOutputType::FaceTestCount;
+    // camera.m_outputType = CameraOutputType::Normal;
 
     camera.m_imageSize = uvec2(640, 480);
     camera.m_samples = 512;
@@ -247,10 +265,11 @@ void render() {
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    teapotDragonScene(world, camera);
+    // teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
     // reimuScene(world, camera);
     // sponzaScene(world, camera);
+    normalTestScene(world, camera);
 
     // render
     auto progressViewNextUpdate = std::chrono::high_resolution_clock::now();

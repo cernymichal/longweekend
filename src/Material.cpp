@@ -1,6 +1,12 @@
 #include "Material.h"
 
 SCATTER_FUNCTION(lambertianScatter) {
+    if (material.normalTexture) {
+        mat3 tbn = mat3(hit.tangent, hit.bitangent, hit.normal);
+        vec3 normalMapSample = material.normalTexture->sampleInterpolated(hit.uv) * 2.0f - 1.0f;
+        hit.normal = glm::normalize(tbn * normalMapSample);
+    }
+
     auto scatterDirection = hit.normal + randomUnitVec<3>();
 
     // near zero direction fix
@@ -20,6 +26,12 @@ SCATTER_FUNCTION(lambertianScatter) {
 }
 
 SCATTER_FUNCTION(metallicScatter) {
+    if (material.normalTexture) {
+        mat3 tbn = mat3(hit.tangent, hit.bitangent, hit.normal);
+        vec3 normalMapSample = material.normalTexture->sampleInterpolated(hit.uv) * 2.0f - 1.0f;
+        hit.normal = glm::normalize(tbn * normalMapSample);
+    }
+
     auto reflected = reflect(glm::normalize(ray.direction), hit.normal);
     reflected += material.fuzziness * randomUnitVec<3>();
 
@@ -35,6 +47,12 @@ SCATTER_FUNCTION(metallicScatter) {
 }
 
 SCATTER_FUNCTION(dielectricScatter) {
+    if (material.normalTexture) {
+        mat3 tbn = mat3(hit.tangent, hit.bitangent, hit.normal);
+        vec3 normalMapSample = material.normalTexture->sampleInterpolated(hit.uv) * 2.0f - 1.0f;
+        hit.normal = glm::normalize(tbn * normalMapSample);
+    }
+
     auto normalizedDirection = glm::normalize(ray.direction);
     bool frontFaceHit = glm::dot(normalizedDirection, hit.normal) <= 0;
     auto refractionRatio = frontFaceHit ? 1.0f / material.ir : material.ir;
