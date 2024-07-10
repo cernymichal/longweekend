@@ -258,17 +258,17 @@ void render() {
 
     // camera.m_outputType = CameraOutputType::Depth;
 
-    camera.m_imageSize = uvec2(640, 480) * 2U;
+    camera.m_imageSize = uvec2(640, 480) ;
     camera.m_samples = 512;
-    camera.m_maxBounces = 8;
+    camera.m_maxBounces = 4;
     f32 gamma = 2.2f;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    teapotDragonScene(world, camera);
+    // teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
     // reimuScene(world, camera);
-    // sponzaScene(world, camera);
+    sponzaScene(world, camera);
     // normalTestScene(world, camera);
 
     // render

@@ -1,22 +1,28 @@
 #include "Material.h"
 
 SCATTER_FUNCTION(lambertianScatter) {
+    // Alpha-clip
+    f32 alpha = material.alphaTexture ? material.alphaTexture->sampleInterpolated(hit.uv) : 1.0;
+    if (alpha < 0.5f) {
+        hit.hit = false;
+        return {};
+    }
+
+    // Normal mapping
     if (material.normalTexture) {
         mat3 tbn = mat3(hit.tangent, hit.bitangent, hit.normal);
         vec3 normalMapSample = material.normalTexture->sampleInterpolated(hit.uv) * 2.0f - 1.0f;
         hit.normal = glm::normalize(tbn * normalMapSample);
     }
 
+    // Lambert
     auto scatterDirection = hit.normal + randomUnitVec<3>();
 
-    // near zero direction fix
-    if (glm::any(glm::abs(scatterDirection) < vec3(1e-8f)))
+    if (glm::any(glm::abs(scatterDirection) < vec3(1e-8f)))  // Near zero direction fix
         scatterDirection = hit.normal;
 
     auto albedo = material.albedoTexture ? material.albedoTexture->sampleInterpolated(hit.uv) : material.albedo;
     auto emission = material.emissionTexture ? material.emissionTexture->sampleInterpolated(hit.uv) : material.emission;
-
-    // TODO normal mapping
 
     return {
         .scatterDirection = scatterDirection,
@@ -26,12 +32,21 @@ SCATTER_FUNCTION(lambertianScatter) {
 }
 
 SCATTER_FUNCTION(metallicScatter) {
+    // Alpha-clip
+    f32 alpha = material.alphaTexture ? material.alphaTexture->sampleInterpolated(hit.uv) : 1.0;
+    if (alpha < 0.5f) {
+        hit.hit = false;
+        return {};
+    }
+
+    // Normal mapping
     if (material.normalTexture) {
         mat3 tbn = mat3(hit.tangent, hit.bitangent, hit.normal);
         vec3 normalMapSample = material.normalTexture->sampleInterpolated(hit.uv) * 2.0f - 1.0f;
         hit.normal = glm::normalize(tbn * normalMapSample);
     }
 
+    // Metallic
     auto reflected = reflect(glm::normalize(ray.direction), hit.normal);
     reflected += material.fuzziness * randomUnitVec<3>();
 
@@ -47,12 +62,14 @@ SCATTER_FUNCTION(metallicScatter) {
 }
 
 SCATTER_FUNCTION(dielectricScatter) {
+    // Normal mapping
     if (material.normalTexture) {
         mat3 tbn = mat3(hit.tangent, hit.bitangent, hit.normal);
         vec3 normalMapSample = material.normalTexture->sampleInterpolated(hit.uv) * 2.0f - 1.0f;
         hit.normal = glm::normalize(tbn * normalMapSample);
     }
 
+    // Dielectric
     auto normalizedDirection = glm::normalize(ray.direction);
     bool frontFaceHit = glm::dot(normalizedDirection, hit.normal) <= 0;
     auto refractionRatio = frontFaceHit ? 1.0f / material.ir : material.ir;

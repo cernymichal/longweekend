@@ -112,8 +112,10 @@ private:
         for (u32 i = 0; i <= m_maxBounces; i++) {
             HitRecord hit = world.hit(ray);
 
-            if (!hit.hit)
+            if (!hit.hit) {
+                hit.hit = true;
                 hit.material = m_environmentMaterial;
+            }
 
             hit.point = ray.at(ray.tInterval.max);
 
@@ -125,6 +127,14 @@ private:
                 LOG(std::format("Scatter function not set for material: {}", material->name));
                 scatterOutput = {
                     .scatterDirection = hit.normal + randomUnitVec<3>()};
+            }
+
+            if (!hit.hit) {
+                // Alpha masked hit
+                // TODO move this into the intersection check for performance?
+                ray = Ray(hit.point, ray.direction);
+                i--;
+                continue;
             }
 
             // Output type specific handling

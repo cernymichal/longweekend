@@ -63,6 +63,9 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
         else if (!mtlMaterial.bump_texname.empty())  // TODO check if bump contains 3 channels
             material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.bump_texname, true));
 
+        if (!mtlMaterial.alpha_texname.empty())
+            material->alphaTexture = makeRef<Texture<f32>>(loadTexture<f32>(filePath.parent_path() / mtlMaterial.alpha_texname, true));
+
         auto& submesh = submeshes.emplace_back();
         submesh.material = material;
     }

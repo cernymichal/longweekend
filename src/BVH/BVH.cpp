@@ -85,7 +85,7 @@ void BVH::build(std::vector<Face>& faces) {
 
     m_faces = &faces;
     m_nodes.clear();
-    // TODO reserve m_nodes
+    m_nodes.reserve(std::bit_ceil(m_faces->size() / BVH_MAX_FACES_PER_LEAF + 1) * 2 - 1);  // leaftCount * 2 - 1
 
     // Calculate AABBs for each face
     std::vector<AABB> faceAABBs;
