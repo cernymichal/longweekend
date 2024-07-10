@@ -111,6 +111,7 @@ private:
 
         for (u32 i = 0; i <= m_maxBounces; i++) {
             HitRecord hit = world.hit(ray);
+
             if (!hit.hit)
                 hit.material = m_environmentMaterial;
 
@@ -130,7 +131,7 @@ private:
             if (m_outputType != CameraOutputType::Color) {
                 switch (m_outputType) {
                     case CameraOutputType::Depth:
-                        return vec3(isinf(ray.tInterval.max) ? 0.0f : 1.0f / (ray.tInterval.max * glm::length(ray.direction) + 1.0f));  // Reverse depth
+                        return vec3(std::isinf(ray.tInterval.max) ? 0.0f : 1.0f / (ray.tInterval.max * glm::length(ray.direction) + 1.0f));  // Reverse depth
                     case CameraOutputType::Normal:
                         return hit.normal;
                     case CameraOutputType::Albedo:

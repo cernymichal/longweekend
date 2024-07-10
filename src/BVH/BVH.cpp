@@ -3,6 +3,11 @@
 HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
     HitRecord hit;
 
+    if (m_nodes.empty())
+        return hit;
+
+    RayShearConstants raySheerConstants(ray.direction);
+
     std::array<u32, BVH_MAX_DEPTH> stack;
     u32 stackSize = 0;
     stack[stackSize++] = 0;
@@ -16,7 +21,7 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
 #endif
 
         auto nodeIntersection = rayAABBintersection(ray.origin, ray.invDirection, node.aabb);
-        if (isnan(nodeIntersection.min) || !ray.tInterval.intersects(nodeIntersection))
+        if (std::isnan(nodeIntersection.min) || !ray.tInterval.intersects(nodeIntersection))
             continue;
 
         if (node.faceCount != 0) {
@@ -28,10 +33,8 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
                 ray.faceTestCount++;
 #endif
 
-                auto [t, barycentric] = rayTriangleIntersectionCoordinates(ray.origin, ray.direction, face.vertices, intersectBackfacing);
-                if (!isnan(t) && ray.tInterval.surrounds(t)) {
-                    // TODO reject if triangle is almost perpendicular to ray
-
+                auto [t, barycentric] = rayTriangleIntersectionWT(ray.origin, raySheerConstants, face.vertices[0], face.vertices[1], face.vertices[2], intersectBackfacing);
+                if (!std::isnan(t) && ray.tInterval.surrounds(t)) {
                     hit.hit = true;
                     hit.face = &face;
                     hit.barycentric = barycentric;
@@ -49,11 +52,11 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
         // Add children to stack sorted by tNear
         const Node& leftNode = m_nodes[node.childIndex];
         auto leftNodeIntersection = rayAABBintersection(ray.origin, ray.invDirection, leftNode.aabb);
-        bool leftNodeHit = !isnan(leftNodeIntersection.min) && ray.tInterval.intersects(leftNodeIntersection);
+        bool leftNodeHit = !std::isnan(leftNodeIntersection.min) && ray.tInterval.intersects(leftNodeIntersection);
 
         const Node& rightNode = m_nodes[node.childIndex + 1];
         auto rightNodeIntersection = rayAABBintersection(ray.origin, ray.invDirection, rightNode.aabb);
-        bool rightNodeHit = !isnan(rightNodeIntersection.min) && ray.tInterval.intersects(rightNodeIntersection);
+        bool rightNodeHit = !std::isnan(rightNodeIntersection.min) && ray.tInterval.intersects(rightNodeIntersection);
 
         if (leftNodeHit && rightNodeHit) {
             if (leftNodeIntersection.min < rightNodeIntersection.min) {

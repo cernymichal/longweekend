@@ -29,11 +29,11 @@ struct Ray {
 
         auto transformedTInterval = tInterval;
         auto transformedDirectionLength = glm::length(transformedDirection);
-        if (!isinf(tInterval.min)) {
+        if (!std::isinf(tInterval.min)) {
             vec3 tMinVec = transform * vec4(tInterval.min * direction, 0);
             transformedTInterval.min = glm::length(tMinVec) / transformedDirectionLength;
         }
-        if (!isinf(tInterval.max)) {
+        if (!std::isinf(tInterval.max)) {
             vec3 tMaxVec = transform * vec4(tInterval.max * direction, 0);
             transformedTInterval.max = glm::length(tMaxVec) / transformedDirectionLength;
         }
