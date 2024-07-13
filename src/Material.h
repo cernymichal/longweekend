@@ -6,6 +6,7 @@
 
 struct ScatterOutput {
     bool didScatter = true;
+    bool isTransmission = false;
     vec3 scatterDirection;
     vec3 albedo = DEBUG_COLOR;
     vec3 emission = vec3(0);
@@ -31,7 +32,7 @@ public:
     Ref<Texture<vec3>> emissionTexture;
     f32 emissionIntensity = 0;
     Ref<Texture<vec3>> normalTexture;
-    Ref<Texture<f32>> alphaTexture; // TODO u8
+    Ref<Texture<f32>> alphaTexture;  // TODO u8
 
     f32 fuzziness = 0;
     f32 ir = 1;

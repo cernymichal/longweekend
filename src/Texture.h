@@ -8,7 +8,7 @@ public:
     Texture() = default;
 
     Texture(const uvec2& size, T*&& data = nullptr, bool gammaCorrected = false) : m_size(size), m_data(data), m_gammaCorrected(gammaCorrected) {
-        if (!m_data)
+        if (!m_data && size.x != 0 && size.y != 0)
             m_data = new T[m_size.x * m_size.y];
     }
 
@@ -24,8 +24,13 @@ public:
         m_data = new T[m_size.x * m_size.y];
         m_gammaCorrected = other.m_gammaCorrected;
 
-        for (size_t i = 0; i < m_size.x * m_size.y; i++)
-            m_data[i] = other.m_data[i];
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            std::memcpy(m_data, other.m_data, m_size.x * m_size.y * sizeof(T));
+        }
+        else {
+            for (size_t i = 0; i < m_size.x * m_size.y; i++)
+                m_data[i] = other.m_data[i];
+        }
     }
 
     Texture(Texture&& other) noexcept {

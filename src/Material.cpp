@@ -87,6 +87,7 @@ SCATTER_FUNCTION(dielectricScatter) {
         scatterDirection = ::refract(normalizedDirection, outwardNormal, refractionRatio);
 
     return {
+        .isTransmission = true,
         .scatterDirection = scatterDirection,
         .albedo = vec3(1),
     };

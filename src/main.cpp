@@ -6,10 +6,10 @@
 #include "Postprocessing.h"
 #include "Texture.h"
 
-constexpr bool ENABLE_PROGRESS_VIEW = true;
+constexpr bool ENABLE_PREVIEW = true;
+constexpr bool DENOISE_PREVIEW = true;
 constexpr auto PROGRESS_VIEW_UPDATE_INTERVAL = std::chrono::seconds(1);
-constexpr auto PROGRESS_VIEW_FILENAME = "progress_view.bmp";
-constexpr auto OUTPUT_FILENAME = "output.exr";
+const std::filesystem::path OUTPUT_FOLDER = "output";
 
 void sphereScene(HittableGroup& world, Camera& camera) {
     // camera
@@ -256,33 +256,59 @@ void render() {
     HittableGroup world;
     Camera camera;
 
-    // camera.m_outputType = CameraOutputType::Depth;
-
-    camera.m_imageSize = uvec2(640, 480) ;
-    camera.m_samples = 512;
-    camera.m_maxBounces = 4;
+    camera.m_imageSize = uvec2(640, 480);
+    camera.m_samples = 64;
+    camera.m_auxillarySamples = 32;
+    camera.m_maxBounces = 8;
     f32 gamma = 2.2f;
+
+    camera.m_outputChannels = (u32)OutputChannel::Color | (u32)OutputChannel::Normal | (u32)OutputChannel::Albedo;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
-    // teapotDragonScene(world, camera);
+    teapotDragonScene(world, camera);
     // tetrahedronScene(world, camera);
     // reimuScene(world, camera);
-    sponzaScene(world, camera);
+    // sponzaScene(world, camera);
     // normalTestScene(world, camera);
 
     // render
-    auto progressViewNextUpdate = std::chrono::high_resolution_clock::now();
-    auto sampleFinishCallback = [&](const Texture<vec3>& accumulator, u32 sample) {
+    if (!std::filesystem::exists(OUTPUT_FOLDER))
+        std::filesystem::create_directory(OUTPUT_FOLDER);
+
+    auto auxillarySampleCallback = [&](const RenderOuput& output, u32 sample) {
+        LOG(std::format("{}/{} auxillary samples done ({:.1f}%)", sample, camera.m_auxillarySamples, sample * 100.0f / camera.m_auxillarySamples));
+
+        if (sample == camera.m_auxillarySamples) {
+            if (camera.m_outputChannels & (u32)OutputChannel::Depth)
+                writeEXR(OUTPUT_FOLDER / "depth.exr", output.depth);
+            if (camera.m_outputChannels & (u32)OutputChannel::Normal)
+                writeEXR(OUTPUT_FOLDER / "normal.exr", output.normal);
+            if (camera.m_outputChannels & (u32)OutputChannel::Albedo)
+                writeEXR(OUTPUT_FOLDER / "albedo.exr", output.albedo);
+            if (camera.m_outputChannels & (u32)OutputChannel::Emission)
+                writeEXR(OUTPUT_FOLDER / "emission.exr", output.emission);
+#ifdef BVH_TEST
+            if (camera.m_outputChannels & (u32)OutputChannel::AABBTestCount)
+                writeEXR(OUTPUT_FOLDER / "aabb-test-count.exr", output.aabbTestCount);
+            if (camera.m_outputChannels & (u32)OutputChannel::FaceTestCount)
+                writeEXR(OUTPUT_FOLDER / "face-test-count.exr", output.faceTestCount);
+#endif
+        }
+    };
+
+    auto previewNextUpdate = std::chrono::high_resolution_clock::now();
+    auto colorSampleCallback = [&](const RenderOuput& output, u32 sample) {
         LOG(std::format("{}/{} samples done ({:.1f}%)", sample, camera.m_samples, sample * 100.0f / camera.m_samples));
 
-        if (ENABLE_PROGRESS_VIEW) {
+        if (ENABLE_PREVIEW) {
             auto currentTime = std::chrono::high_resolution_clock::now();
-            if (progressViewNextUpdate <= currentTime) {
-                auto frameSRGB = hdrToSRGB(accumulator, gamma, (f32)sample);
-                writeBMP(PROGRESS_VIEW_FILENAME, frameSRGB);
+            if (previewNextUpdate <= currentTime) {
+                auto preview = DENOISE_PREVIEW ? denoiseTextureOIDN(output.color, output.albedo, output.normal) : output.color;
+                auto previewSRGB = hdrToSRGB(preview, gamma);
+                writeBMP(OUTPUT_FOLDER / "preview.bmp", previewSRGB);
 
-                progressViewNextUpdate = currentTime + PROGRESS_VIEW_UPDATE_INTERVAL;
+                previewNextUpdate = currentTime + PROGRESS_VIEW_UPDATE_INTERVAL;
             }
         }
     };
@@ -290,12 +316,15 @@ void render() {
     LOG(std::format("Rendering image {}x{}", camera.m_imageSize.x, camera.m_imageSize.y));
 
     auto start = std::chrono::high_resolution_clock::now();
-    Texture<vec3> frame = camera.render(world, sampleFinishCallback);
+    RenderOuput output = camera.render(world, colorSampleCallback, auxillarySampleCallback);
     auto stop = std::chrono::high_resolution_clock::now();
 
     LOG(std::format("Time taken: {:.2f}s", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0));
 
-    writeEXR(OUTPUT_FILENAME, frame);
+    if (camera.m_outputChannels & (u32)OutputChannel::Color)
+        writeEXR(OUTPUT_FOLDER / "color.exr", output.color);
+    if (camera.m_outputChannels & ((u32)OutputChannel::Color | (u32)OutputChannel::Albedo | (u32)OutputChannel::Normal))
+        writeEXR(OUTPUT_FOLDER / "denoised.exr", denoiseTextureOIDN(output.color, output.albedo, output.normal, true));
 }
 
 i32 main(i32 argc, char** argv) {
