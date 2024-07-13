@@ -31,4 +31,4 @@ inline Texture<u8vec3> hdrToSRGB(const Texture<vec3>& texture, f32 gamma = 2.2f)
     return output;
 }
 
-Texture<vec3> denoiseTextureOIDN(const Texture<vec3>& color, const Texture<vec3>& albedo, const Texture<vec3>& normal, bool prefilterAuxillary = false);
+Texture<vec3> denoiseFrameOIDN(const Texture<vec3>& color, const Texture<vec3>& albedo, const Texture<vec3>& normal, bool highQuality = true);

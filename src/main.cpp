@@ -8,7 +8,7 @@
 
 constexpr bool ENABLE_PREVIEW = true;
 constexpr bool DENOISE_PREVIEW = true;
-constexpr auto PROGRESS_VIEW_UPDATE_INTERVAL = std::chrono::seconds(1);
+constexpr auto PROGRESS_VIEW_UPDATE_INTERVAL = std::chrono::seconds(2);
 const std::filesystem::path OUTPUT_FOLDER = "output";
 
 void sphereScene(HittableGroup& world, Camera& camera) {
@@ -258,11 +258,11 @@ void render() {
 
     camera.m_imageSize = uvec2(640, 480);
     camera.m_samples = 64;
-    camera.m_auxillarySamples = 32;
+    camera.m_auxillarySamples = 16;
     camera.m_maxBounces = 8;
     f32 gamma = 2.2f;
 
-    camera.m_outputChannels = (u32)OutputChannel::Color | (u32)OutputChannel::Normal | (u32)OutputChannel::Albedo;
+    camera.m_outputChannels = (u32)OutputChannel::Color | (u32)OutputChannel::Albedo | (u32)OutputChannel::Normal;
 
     // randomSphereScene(world, camera);
     // sphereScene(world, camera);
@@ -271,6 +271,11 @@ void render() {
     // reimuScene(world, camera);
     // sponzaScene(world, camera);
     // normalTestScene(world, camera);
+
+    u32 denoiseChannels = (u32)OutputChannel::Color | (u32)OutputChannel::Albedo | (u32)OutputChannel::Normal;
+    bool canBeDenoised = (camera.m_outputChannels & denoiseChannels) == denoiseChannels;
+    if (DENOISE_PREVIEW && !canBeDenoised)
+        LOG("Denoising preview is disabled because the output channels do not include color, albedo, or normal");
 
     // render
     if (!std::filesystem::exists(OUTPUT_FOLDER))
@@ -301,10 +306,10 @@ void render() {
     auto colorSampleCallback = [&](const RenderOuput& output, u32 sample) {
         LOG(std::format("{}/{} samples done ({:.1f}%)", sample, camera.m_samples, sample * 100.0f / camera.m_samples));
 
-        if (ENABLE_PREVIEW) {
+        if (ENABLE_PREVIEW && camera.m_outputChannels & (u32)OutputChannel::Color) {
             auto currentTime = std::chrono::high_resolution_clock::now();
             if (previewNextUpdate <= currentTime) {
-                auto preview = DENOISE_PREVIEW ? denoiseTextureOIDN(output.color, output.albedo, output.normal) : output.color;
+                auto preview = DENOISE_PREVIEW && canBeDenoised ? denoiseFrameOIDN(output.color, output.albedo, output.normal, false) : output.color;
                 auto previewSRGB = hdrToSRGB(preview, gamma);
                 writeBMP(OUTPUT_FOLDER / "preview.bmp", previewSRGB);
 
@@ -321,10 +326,15 @@ void render() {
 
     LOG(std::format("Time taken: {:.2f}s", std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0));
 
-    if (camera.m_outputChannels & (u32)OutputChannel::Color)
+    if (camera.m_outputChannels & (u32)OutputChannel::Color) {
         writeEXR(OUTPUT_FOLDER / "color.exr", output.color);
-    if (camera.m_outputChannels & ((u32)OutputChannel::Color | (u32)OutputChannel::Albedo | (u32)OutputChannel::Normal))
-        writeEXR(OUTPUT_FOLDER / "denoised.exr", denoiseTextureOIDN(output.color, output.albedo, output.normal, true));
+        writeBMP(OUTPUT_FOLDER / "color.bmp", hdrToSRGB(output.color, gamma));
+    }
+    if (canBeDenoised) {
+        Texture<vec3> denoisedColor = denoiseFrameOIDN(output.color, output.albedo, output.normal);
+        writeEXR(OUTPUT_FOLDER / "denoised.exr", denoisedColor);
+        writeBMP(OUTPUT_FOLDER / "denoised.bmp", hdrToSRGB(denoisedColor, gamma));
+    }
 }
 
 i32 main(i32 argc, char** argv) {

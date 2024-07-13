@@ -163,13 +163,19 @@ Texture<T> loadEXR(const std::filesystem::path& filePath, bool flipVertically) {
 }
 
 void writeBMP(const std::filesystem::path& filePath, const Texture<u8vec3> texture, bool flipVertically) {
+    std::string pathString = filePath.string();
+    LOG("Saving texture " << pathString);
+
     if (flipVertically)
         stbi_flip_vertically_on_write(true);
     else
         stbi_flip_vertically_on_write(false);
 
-    std::string pathString = filePath.string();
-    stbi_write_bmp(pathString.c_str(), texture.size().x, texture.size().y, 3, texture.data());
+    i32 status = stbi_write_bmp(pathString.c_str(), texture.size().x, texture.size().y, 3, texture.data());
+    if (status == 0) {
+        LOG("Saving texture failed");
+        throw std::runtime_error("Saving texture failed");
+    }
 }
 
 template <typename T>
@@ -227,8 +233,6 @@ void writeEXR(const std::filesystem::path& filePath, const Texture<T> texture, b
             channels[i].name[j] = channelNames[i][j];
         channels[i].name[nameLength] = '\0';
     }
-    if (channelsToSave < 3)
-        header.channels[0].name[0] = 'R';
 
     std::vector<i32> pixelTypes(channelsToSave, TINYEXR_PIXELTYPE_FLOAT);
     std::vector<i32> requestedPixelTypes(channelsToSave, TINYEXR_PIXELTYPE_HALF);

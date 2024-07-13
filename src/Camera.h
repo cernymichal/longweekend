@@ -23,8 +23,8 @@ struct RenderOuput {
     Texture<vec3> albedo;
     Texture<vec3> emission;
 #ifdef BVH_TEST
-    Texture<u32> aabbTestCount;
-    Texture<u32> faceTestCount;
+    Texture<f32> aabbTestCount;
+    Texture<f32> faceTestCount;
 #endif
 };
 
@@ -82,8 +82,8 @@ public:
             .albedo = Texture<vec3>(m_outputChannels & (u32)OutputChannel::Albedo ? m_imageSize : uvec2(0)),
             .emission = Texture<vec3>(m_outputChannels & (u32)OutputChannel::Emission ? m_imageSize : uvec2(0)),
 #ifdef BVH_TEST
-            .aabbTestCount = Texture<u32>(m_outputChannels & (u32)OutputChannel::AABBTestCount ? m_imageSize : uvec2(0)),
-            .faceTestCount = Texture<u32>(m_outputChannels & (u32)OutputChannel::FaceTestCount ? m_imageSize : uvec2(0)),
+            .aabbTestCount = Texture<f32>(m_outputChannels & (u32)OutputChannel::AABBTestCount ? m_imageSize : uvec2(0)),
+            .faceTestCount = Texture<f32>(m_outputChannels & (u32)OutputChannel::FaceTestCount ? m_imageSize : uvec2(0)),
 #endif
         };
 
@@ -152,9 +152,9 @@ private:
                         output.emission[uvec2(x, y)] = runningAverage(output.emission[uvec2(x, y)], raySample.emission, sample);
 #ifdef BVH_TEST
                     if (m_outputChannels & (u32)OutputChannel::AABBTestCount)
-                        output.aabbTestCount[uvec2(x, y)] = runningAverage(output.aabbTestCount[uvec2(x, y)], raySample.aabbTestCount, sample);
+                        output.aabbTestCount[uvec2(x, y)] = runningAverage(output.aabbTestCount[uvec2(x, y)], (f32)raySample.aabbTestCount, sample);
                     if (m_outputChannels & (u32)OutputChannel::FaceTestCount)
-                        output.faceTestCount[uvec2(x, y)] = runningAverage(output.faceTestCount[uvec2(x, y)], raySample.faceTestCount, sample);
+                        output.faceTestCount[uvec2(x, y)] = runningAverage(output.faceTestCount[uvec2(x, y)], (f32)raySample.faceTestCount, sample);
 #endif
                 }
             }
@@ -227,8 +227,8 @@ private:
             output.albedo = scatterOutput.albedo;
             output.emission = scatterOutput.emission;
 #ifdef BVH_TEST
-            ouptut.aabbTestCount = hit.aabbTestCount;
-            ouptut.faceTestCount = hit.faceTestCount;
+            output.aabbTestCount = ray.aabbTestCount;
+            output.faceTestCount = ray.faceTestCount;
 #endif
             return output;
         }
