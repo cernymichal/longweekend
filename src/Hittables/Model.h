@@ -26,8 +26,8 @@ public:
 
         // Check each submesh for intersection
         for (const auto& submesh : m_submeshes) {
-            bool intersectBackfacing = submesh.material->scatterFunction == dielectricScatter;  // TODO more general solution
-            HitRecord submeshHit = submesh.bvh.intersect(ray, intersectBackfacing);
+            bool backfaceCulling = submesh.material->backfaceCulling && submesh.material->scatterFunction != dielectricScatter;  // TODO more general solution
+            HitRecord submeshHit = submesh.bvh.intersect(ray, backfaceCulling);
 
             if (submeshHit.hit) {
                 hit = submeshHit;

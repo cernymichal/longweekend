@@ -1,6 +1,6 @@
 #include "BVH.h"
 
-HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
+HitRecord BVH::intersect(Ray& ray, bool backfaceCulling) const {
     HitRecord hit;
 
     if (m_nodes.empty())
@@ -33,7 +33,7 @@ HitRecord BVH::intersect(Ray& ray, bool intersectBackfacing) const {
                 ray.faceTestCount++;
 #endif
 
-                auto [t, barycentric] = rayTriangleIntersectionWT(ray.origin, raySheerConstants, face.vertices[0], face.vertices[1], face.vertices[2], intersectBackfacing);
+                auto [t, barycentric] = rayTriangleIntersectionWT(ray.origin, raySheerConstants, face.vertices[0], face.vertices[1], face.vertices[2], backfaceCulling);
                 if (!std::isnan(t) && ray.tInterval.surrounds(t)) {
                     hit.hit = true;
                     hit.face = &face;

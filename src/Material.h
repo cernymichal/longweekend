@@ -37,5 +37,7 @@ public:
     f32 fuzziness = 0;
     f32 ir = 1;
 
+    bool backfaceCulling = true;
+
     SCATTER_FUNCTION((*scatterFunction)) = lambertianScatter;
 };

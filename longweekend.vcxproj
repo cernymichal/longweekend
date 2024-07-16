@@ -240,6 +240,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\Postprocessing.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\BVH\BVH.h" />
@@ -251,6 +252,7 @@
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\Hittables\Model.h" />
     <ClInclude Include="src\Postprocessing.h" />
+    <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\Face.h" />
     <ClInclude Include="src\Transform.h" />
@@ -264,6 +266,7 @@
     <ClInclude Include="src\Utils\Ptr.h" />
     <ClInclude Include="src\Utils\Random.h" />
     <ClInclude Include="src\Utils\Scalars.h" />
+    <ClInclude Include="src\World.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

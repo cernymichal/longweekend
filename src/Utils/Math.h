@@ -329,7 +329,7 @@ struct TriangleHit {
  * @param intersectBackfacing Whether to intersect back facing triangles
  * @return The t from the ray origin along the rayDirection the intersection point, or NAN if there is no intersection, together with the barycentric coordinates
  */
-MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleHit rayTriangleIntersection(const vec3& rayOrigin, const vec3& rayDirection, const vec3& vertexA, const vec3& vertexB, const vec3& vertexC, bool intersectBackfacing = false) {
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleHit rayTriangleIntersection(const vec3& rayOrigin, const vec3& rayDirection, const vec3& vertexA, const vec3& vertexB, const vec3& vertexC, bool backfaceCulling = true) {
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
     vec3 edge1 = vertexB - vertexA;
@@ -339,8 +339,8 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleHit rayTriangleIntersection(const vec
 
     // if the determinant is negative, the triangle is back facing
     // if the determinant is close to 0, the ray misses the triangle
-    if (!intersectBackfacing && determinant <= glm::epsilon<f32>() ||
-        (intersectBackfacing && std::abs(determinant) <= glm::epsilon<f32>()))
+    if ((backfaceCulling && determinant <= glm::epsilon<f32>()) ||
+        (!backfaceCulling && std::abs(determinant) <= glm::epsilon<f32>()))
         return {NAN};
 
     f32 determinantInv = 1.0f / determinant;
@@ -400,7 +400,7 @@ struct RayShearConstants {
  * @param intersectBackfacing Whether to intersect back facing triangles
  * @return The t from the ray origin along the rayDirection the intersection point, or NAN if there is no intersection, together with the barycentric coordinates
  */
-MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleHit rayTriangleIntersectionWT(const vec3& rayOrigin, const RayShearConstants& rayShearConstants, const vec3& vertexA, const vec3& vertexB, const vec3& vertexC, bool intersectBackfacing = false) {
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleHit rayTriangleIntersectionWT(const vec3& rayOrigin, const RayShearConstants& rayShearConstants, const vec3& vertexA, const vec3& vertexB, const vec3& vertexC, bool backfaceCulling = true) {
     // https://jcgt.org/published/0002/01/05/paper.pdf
 
     // Calculate vertices relative to ray origin
@@ -438,7 +438,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER TriangleHit rayTriangleIntersectionWT(const v
 
     // Perform edge tests
     // Moving this test before and at the end of the previous conditional gives higher performance
-    if ((u < 0.0f || v < 0.0f || w < 0.0f) && (!intersectBackfacing || u > 0.0f || v > 0.0f || w > 0.0f))
+    if ((u < 0.0f || v < 0.0f || w < 0.0f) && (backfaceCulling || u > 0.0f || v > 0.0f || w > 0.0f))
         return {NAN};
 
     // Calculate determinant

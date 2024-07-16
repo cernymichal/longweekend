@@ -17,7 +17,7 @@ public:
         u32 maxFacesPerLeaf = 0;
     };
 
-    HitRecord intersect(Ray& ray, bool intersectBackfacing = false) const;
+    HitRecord intersect(Ray& ray, bool backfaceCulling = true) const;
 
     void build(std::vector<Face>& faces);
 
