@@ -1,4 +1,5 @@
 #include "Hittables/Sphere.h"
+#include "Hittables/TransformedInstance.h"
 #include "IO/MeshIO.h"
 #include "IO/TextureIO.h"
 #include "Postprocessing.h"
@@ -153,12 +154,12 @@ std::pair<Ref<World>, Ref<Camera>> teapotDragonScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto teapotMesh = makeRef<Mesh>(loadOBJ("resources/teapot.obj"));
-    *teapotMesh->m_submeshes[0].material = {
+    auto teapotModel = makeRef<Model>(loadOBJ("resources/teapot.obj"));
+    *teapotModel->m_mesh.materials[0] = {
         .ir = 1.5f,
         .scatterFunction = dielectricScatter,
     };
-    auto teapot = makeRef<Model>(teapotMesh);
+    auto teapot = makeRef<TransformedInstance<Model>>(teapotModel);
 
     teapot->m_transform.scale(vec3(1.5));
     teapot->m_transform.move(vec3(-0.12, -0.1, 0.3));
@@ -166,11 +167,11 @@ std::pair<Ref<World>, Ref<Camera>> teapotDragonScene() {
 
     world->hierarchy.add(teapot);
 
-    auto dragonMesh = makeRef<Mesh>(loadOBJ("resources/dragon.obj"));
-    *dragonMesh->m_submeshes[0].material = {
+    auto dragonModel = makeRef<Model>(loadOBJ("resources/dragon.obj"));
+    *dragonModel->m_mesh.materials[0] = {
         .albedo = vec3(0.5, 0.6, 0.8),
     };
-    auto dragon = makeRef<Model>(dragonMesh);
+    auto dragon = makeRef<TransformedInstance<Model>>(dragonModel);
 
     dragon->m_transform.scale(vec3(0.6));
     dragon->m_transform.move(vec3(0.1, 0.02, 0.0));
@@ -208,10 +209,12 @@ std::pair<Ref<World>, Ref<Camera>> tetrahedronScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto tetrahedronMesh = makeRef<Mesh>(loadOBJ("resources/tetrahedron.obj"));
-    auto tetrahedron = makeRef<Model>(tetrahedronMesh);
+    auto tetrahedronModel = makeRef<Model>(loadOBJ("resources/tetrahedron.obj"));
+    auto tetrahedron = makeRef<TransformedInstance<Model>>(tetrahedronModel);
 
     world->hierarchy.add(tetrahedron);
+
+    return {world, camera};
 }
 
 std::pair<Ref<World>, Ref<Camera>> reimuScene() {
@@ -226,8 +229,8 @@ std::pair<Ref<World>, Ref<Camera>> reimuScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto reimuMesh = makeRef<Mesh>(loadOBJ("resources/reimu/reimu.obj"));
-    auto reimu = makeRef<Model>(reimuMesh);
+    auto reimuModel = makeRef<Model>(loadOBJ("resources/reimu/reimu.obj"));
+    auto reimu = makeRef<TransformedInstance<Model>>(reimuModel);
 
     reimu->m_transform.scale(vec3(1.0 / 20.0));
     reimu->m_transform.move(vec3(0.5, 0.15, 0.5));
@@ -250,8 +253,8 @@ std::pair<Ref<World>, Ref<Camera>> sponzaScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto sponzaMesh = makeRef<Mesh>(loadOBJ("resources/sponza/sponza.obj"));
-    auto sponza = makeRef<Model>(sponzaMesh);
+    auto sponzaModel = makeRef<Model>(loadOBJ("resources/sponza/sponza.obj"));
+    auto sponza = makeRef<TransformedInstance<Model>>(sponzaModel);
 
     sponza->m_transform.scale(vec3(1.0 / 100.0));
 
@@ -272,8 +275,8 @@ std::pair<Ref<World>, Ref<Camera>> normalTestScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto cubeMesh = makeRef<Mesh>(loadOBJ("resources/normal_test/normal_test.obj"));
-    auto cube = makeRef<Model>(cubeMesh);
+    auto cubeModel = makeRef<Model>(loadOBJ("resources/normal_test/normal_test.obj"));
+    auto cube = makeRef<TransformedInstance<Model>>(cubeModel);
 
     cube->m_transform.scale(vec3(1.0 / 2.0));
     cube->m_transform.rotate(glm::radians(vec3(30, -30, 0)));
@@ -361,8 +364,8 @@ void render() {
 #ifdef BVH_TEST
     if (renderer.m_outputChannels & (u32)Renderer::OutputChannel::AABBTestCount)
         writeEXR(OUTPUT_FOLDER / "aabb-test-count.exr", output.aabbTestCount);
-    if (renderer.m_outputChannels & (u32)Renderer::OutputChannel::FaceTestCount)
-        writeEXR(OUTPUT_FOLDER / "face-test-count.exr", output.faceTestCount);
+    if (renderer.m_outputChannels & (u32)Renderer::OutputChannel::TriangleTestCount)
+        writeEXR(OUTPUT_FOLDER / "triangle-test-count.exr", output.triangleTestCount);
 #endif
 }
 

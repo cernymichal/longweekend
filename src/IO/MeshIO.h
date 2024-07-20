@@ -2,4 +2,4 @@
 
 #include "Hittables/Model.h"
 
-Mesh loadOBJ(const std::filesystem::path& filePath);
+Model loadOBJ(const std::filesystem::path& filePath);

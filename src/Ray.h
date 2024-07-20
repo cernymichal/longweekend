@@ -11,7 +11,7 @@ struct Ray {
 
 #ifdef BVH_TEST
     u32 aabbTestCount = 0;
-    u32 faceTestCount = 0;
+    u32 triangleTestCount = 0;
 #endif
 
     explicit Ray() = default;
@@ -42,7 +42,7 @@ struct Ray {
 
 #ifdef BVH_TEST
         transformedRay.aabbTestCount = aabbTestCount;
-        transformedRay.faceTestCount = faceTestCount;
+        transformedRay.triangleTestCount = triangleTestCount;
 #endif
 
         return transformedRay;
@@ -54,7 +54,7 @@ struct Ray {
 
 #ifdef BVH_TEST
         aabbTestCount = transformedRay.aabbTestCount;
-        faceTestCount = transformedRay.faceTestCount;
+        triangleTestCount = transformedRay.triangleTestCount;
 #endif
     }
 };

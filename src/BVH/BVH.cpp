@@ -1,5 +1,7 @@
 #include "BVH.h"
 
+#include "Mesh.h"
+
 HitRecord BVH::intersect(Ray& ray, bool backfaceCulling) const {
     HitRecord hit;
 
@@ -24,19 +26,20 @@ HitRecord BVH::intersect(Ray& ray, bool backfaceCulling) const {
         if (std::isnan(nodeIntersection.min) || !ray.tInterval.intersects(nodeIntersection))
             continue;
 
-        if (node.faceCount != 0) {
+        if (node.triangleCount != 0) {
             // Leaf node
-            for (u32 i = node.faceIndex; i < node.faceIndex + node.faceCount; i++) {
-                const Face& face = m_faces->at(i);
+            for (u32 i = node.triangleIndex; i < node.triangleIndex + node.triangleCount; i++) {
+                const Triangle& triangle = m_triangles->at(i);
 
 #ifdef BVH_TEST
-                ray.faceTestCount++;
+                ray.triangleTestCount++;
 #endif
 
-                auto [t, barycentric] = rayTriangleIntersectionWT(ray.origin, raySheerConstants, face.vertices[0], face.vertices[1], face.vertices[2], backfaceCulling);
+                const auto& vertexIds = triangle.vertexIds;
+                auto [t, barycentric] = rayTriangleIntersectionWT(ray.origin, raySheerConstants, m_vertices->at(vertexIds[0]), m_vertices->at(vertexIds[1]), m_vertices->at(vertexIds[2]), backfaceCulling);
                 if (!std::isnan(t) && ray.tInterval.surrounds(t)) {
                     hit.hit = true;
-                    hit.face = &face;
+                    hit.triangleId = i;
                     hit.barycentric = barycentric;
                     ray.tInterval.max = t;
                 }
@@ -78,29 +81,30 @@ HitRecord BVH::intersect(Ray& ray, bool backfaceCulling) const {
     return hit;
 }
 
-void BVH::build(std::vector<Face>& faces) {
+void BVH::build(const std::vector<vec3>& vertices, std::vector<Triangle>& triangles) {
     m_stats = Stats();
-    m_stats.faceCount = (u32)faces.size();
+    m_stats.triangleCount = (u32)triangles.size();
     auto start = std::chrono::high_resolution_clock::now();
 
-    m_faces = &faces;
+    m_vertices = &vertices;
+    m_triangles = &triangles;
     m_nodes.clear();
-    m_nodes.reserve(std::bit_ceil(m_faces->size() / BVH_MAX_FACES_PER_LEAF + 1) * 2 - 1);  // leaftCount * 2 - 1
+    m_nodes.reserve(std::bit_ceil(triangles.size() / BVH_MAX_TRIANGLES_PER_LEAF + 1) * 2 - 1);  // leaftCount * 2 - 1
 
-    // Calculate AABBs for each face
-    std::vector<AABB> faceAABBs;
-    faceAABBs.reserve(faces.size());
-    for (const Face& face : faces) {
+    // Calculate AABBs for each triangle
+    std::vector<AABB> triangleAABBs;
+    triangleAABBs.reserve(triangles.size());
+    for (const Triangle& triangle : triangles) {
         AABB aabb = AABB::empty();
         for (u32 i = 0; i < 3; i++)
-            aabb = aabb.extendTo(face.vertices[i]);
-        faceAABBs.push_back(aabb);
+            aabb = aabb.extendTo(vertices[triangle.vertexIds[i]]);
+        triangleAABBs.push_back(aabb);
     }
 
     m_nodes.push_back({
         .aabb = AABB::empty(),
-        .faceCount = (u32)faces.size(),
-        .faceIndex = 0,
+        .triangleCount = (u32)triangles.size(),
+        .triangleIndex = 0,
     });
 
     std::queue<std::pair<u32, u32>> queue;
@@ -115,17 +119,18 @@ void BVH::build(std::vector<Face>& faces) {
 
         // Calculate node AABB
         currentNode.aabb = AABB::empty();
-        for (u32 i = currentNode.faceIndex; i < currentNode.faceIndex + currentNode.faceCount; i++)
-            currentNode.aabb = currentNode.aabb.boundingUnion(faceAABBs[i]);
+        for (u32 i = currentNode.triangleIndex; i < currentNode.triangleIndex + currentNode.triangleCount; i++)
+            currentNode.aabb = currentNode.aabb.boundingUnion(triangleAABBs[i]);
 
-        // Dont split if we have too few faces or reached max depth
-        if (currentNode.faceCount <= BVH_MAX_FACES_PER_LEAF || depth >= BVH_MAX_DEPTH) {
+        // Dont split if we have too few triangles or reached max depth
+        if (currentNode.triangleCount <= BVH_MAX_TRIANGLES_PER_LEAF || depth >= BVH_MAX_DEPTH) {
             m_stats.leafCount++;
-            m_stats.maxFacesPerLeaf = std::max(m_stats.maxFacesPerLeaf, currentNode.faceCount);
+            m_stats.maxTrianglesPerLeaf = std::max(m_stats.maxTrianglesPerLeaf, currentNode.triangleCount);
             continue;
         }
 
         // Find longest axis
+
         u32 longestAxis = 0;
         f32 axisLength = currentNode.aabb.max[0] - currentNode.aabb.min[0];
         for (u32 i = 1; i < 3; i++) {
@@ -136,37 +141,37 @@ void BVH::build(std::vector<Face>& faces) {
             }
         }
 
-        // Split faces along longest axis
+        // Split triangles along longest axis
         f32 splitPoint = currentNode.aabb.min[longestAxis] + axisLength / 2;
-        u32 j = currentNode.faceIndex + currentNode.faceCount - 1;
-        for (u32 i = currentNode.faceIndex; i < j;) {
-            if (faceAABBs[i].min[longestAxis] < splitPoint)
+        u32 j = currentNode.triangleIndex + currentNode.triangleCount - 1;
+        for (u32 i = currentNode.triangleIndex; i < j;) {
+            if (triangleAABBs[i].min[longestAxis] < splitPoint)
                 i++;
             else {
-                std::swap(faces[i], faces[j]);
-                std::swap(faceAABBs[i], faceAABBs[j]);
+                std::swap(triangles[i], triangles[j]);
+                std::swap(triangleAABBs[i], triangleAABBs[j]);
                 j--;
             }
         }
 
         // Split node
         Node leftChild = {
-            .faceCount = j - currentNode.faceIndex,
-            .faceIndex = currentNode.faceIndex,
+            .triangleCount = j - currentNode.triangleIndex,
+            .triangleIndex = currentNode.triangleIndex,
         };
 
         Node rightChild = {
-            .faceCount = currentNode.faceCount - leftChild.faceCount,
-            .faceIndex = j,
+            .triangleCount = currentNode.triangleCount - leftChild.triangleCount,
+            .triangleIndex = j,
         };
 
-        if (leftChild.faceCount == 0 || rightChild.faceCount == 0) {
+        if (leftChild.triangleCount == 0 || rightChild.triangleCount == 0) {
             m_stats.leafCount++;
-            m_stats.maxFacesPerLeaf = std::max(m_stats.maxFacesPerLeaf, currentNode.faceCount);
+            m_stats.maxTrianglesPerLeaf = std::max(m_stats.maxTrianglesPerLeaf, currentNode.triangleCount);
             continue;  // TODO handle this case, try another axis?
         }
 
-        currentNode.faceCount = 0;
+        currentNode.triangleCount = 0;
         currentNode.childIndex = (u32)m_nodes.size();
 
         queue.push({currentNode.childIndex, depth + 1});

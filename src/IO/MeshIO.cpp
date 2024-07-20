@@ -8,8 +8,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-Mesh loadOBJ(const std::filesystem::path& filePath) {
-    LOG("Loading meshes from " << filePath);
+Model loadOBJ(const std::filesystem::path& filePath) {
+    LOG("Loading mesh " << filePath);
 
     tinyobj::ObjReaderConfig reader_config;
     reader_config.triangulate = true;
@@ -26,92 +26,171 @@ Mesh loadOBJ(const std::filesystem::path& filePath) {
     if (!reader.Warning().empty())
         LOG("tinyobjloader: " << reader.Warning());
 
-    auto& attrib = reader.GetAttrib();
-    auto& shapes = reader.GetShapes();
-    auto& mtlMaterials = reader.GetMaterials();
+    auto& loadedAttributes = reader.GetAttrib();
+    auto& loadedShapes = reader.GetShapes();
+    auto& loadedMaterials = reader.GetMaterials();
 
     static_assert(sizeof(vec3) == 3 * sizeof(float));
     static_assert(sizeof(vec2) == 2 * sizeof(float));
-    const vec3* vertices = reinterpret_cast<const vec3*>(attrib.vertices.data());
-    const vec3* normals = reinterpret_cast<const vec3*>(attrib.normals.data());
-    const vec2* texcoords = reinterpret_cast<const vec2*>(attrib.texcoords.data());
+    const vec3* loadedVertices = reinterpret_cast<const vec3*>(loadedAttributes.vertices.data());
+    const vec3* loadedNormals = reinterpret_cast<const vec3*>(loadedAttributes.normals.data());
+    const vec2* loadedUVs = reinterpret_cast<const vec2*>(loadedAttributes.texcoords.data());
 
-    std::vector<Mesh::Submesh> submeshes;
-    Mesh::Submesh noMaterialSubmesh;
-    bool hasNormals = !attrib.normals.empty();
-    bool hasUVs = !attrib.texcoords.empty();
+    bool hasNormals = !loadedAttributes.normals.empty();
+    bool hasUVs = !loadedAttributes.texcoords.empty();
+    bool calculateTangents = hasNormals && hasUVs;
 
-    for (const auto& mtlMaterial : mtlMaterials) {
+    Mesh modelMesh;
+
+    // Load materials
+    for (const auto& loadedMaterial : loadedMaterials) {
         auto material = makeRef<Material>();
         *material = {
-            .name = mtlMaterial.name,
-            .albedo = std::bit_cast<vec3>(mtlMaterial.diffuse),
-            .emission = std::bit_cast<vec3>(mtlMaterial.emission),
+            .name = loadedMaterial.name,
+            .albedo = std::bit_cast<vec3>(loadedMaterial.diffuse),
+            .emission = std::bit_cast<vec3>(loadedMaterial.emission),
             .emissionIntensity = material->emission != vec3(0) ? 1.0f : 0.0f,
         };
 
         // TODO support texture options
         // TODO share textures
-        if (!mtlMaterial.diffuse_texname.empty())
-            material->albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.diffuse_texname, true));
+        if (!loadedMaterial.diffuse_texname.empty())
+            material->albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / loadedMaterial.diffuse_texname, true));
 
-        if (!mtlMaterial.emissive_texname.empty())
-            material->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.emissive_texname, true));
+        if (!loadedMaterial.emissive_texname.empty())
+            material->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / loadedMaterial.emissive_texname, true));
 
-        if (!mtlMaterial.normal_texname.empty())
-            material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.normal_texname, true));
-        else if (!mtlMaterial.bump_texname.empty())  // TODO check if bump contains 3 channels
-            material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / mtlMaterial.bump_texname, true));
+        if (!loadedMaterial.normal_texname.empty())
+            material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / loadedMaterial.normal_texname, true));
+        else if (!loadedMaterial.bump_texname.empty())  // TODO check if bump contains 3 channels
+            material->normalTexture = makeRef<Texture<vec3>>(loadTexture<vec3>(filePath.parent_path() / loadedMaterial.bump_texname, true));
 
-        if (!mtlMaterial.alpha_texname.empty()) {
-            material->alphaTexture = makeRef<Texture<f32>>(loadTexture<f32>(filePath.parent_path() / mtlMaterial.alpha_texname, true));
+        if (!loadedMaterial.alpha_texname.empty()) {
+            material->alphaTexture = makeRef<Texture<f32>>(loadTexture<f32>(filePath.parent_path() / loadedMaterial.alpha_texname, true));
             material->backfaceCulling = false;
         }
 
-        auto& submesh = submeshes.emplace_back();
-        submesh.material = material;
+        modelMesh.materials.push_back(material);
     }
 
-    for (size_t shapeId = 0; shapeId < shapes.size(); shapeId++) {
-        auto& mesh = shapes[shapeId].mesh;
-        for (size_t faceId = 0; faceId < mesh.num_face_vertices.size(); faceId++) {
-            i32 materialId = mesh.material_ids[faceId];
-            auto& face = (materialId >= 0 ? submeshes[materialId] : noMaterialSubmesh).faces.emplace_back();
+    // Load attributes and construct the triangle index buffer
+    modelMesh.geometry = makeRef<MeshGeometry>();
 
-            // Load face vertices
-            assert(mesh.num_face_vertices[faceId] == 3);
+    u32 vertexCount = loadedAttributes.vertices.size() / 3;
+    std::vector<std::vector<u32>> vertexIndices(vertexCount);
+
+    std::vector<vec3> bitangents;  // Temporary storage for bitangents, used to calculate handedness of the tangent basis
+
+    bool hasNoMaterialTriangles = false;
+
+    for (size_t shapeId = 0; shapeId < loadedShapes.size(); shapeId++) {
+        auto& mesh = loadedShapes[shapeId].mesh;
+        for (size_t triangleId = 0; triangleId < mesh.num_face_vertices.size(); triangleId++) {
+            auto& triangle = modelMesh.geometry->triangles.emplace_back();
+
+            // Load material
+            i32 materialId = mesh.material_ids[triangleId];
+            if (materialId < 0) {
+                // No material assigned to this triangle, use default material added at the end
+                hasNoMaterialTriangles = true;
+                materialId = modelMesh.materials.size();
+            }
+            triangle.materialId = materialId;
+
+            // Load triangle loadedVertices
+            assert(mesh.num_face_vertices[triangleId] == 3);
             for (size_t vertexId = 0; vertexId < 3; vertexId++) {
-                tinyobj::index_t idx = mesh.indices[3 * faceId + vertexId];
+                tinyobj::index_t idx = mesh.indices[3 * triangleId + vertexId];
 
-                face.vertices[vertexId] = vertices[idx.vertex_index];
-                face.normals[vertexId] = idx.normal_index >= 0 ? normals[idx.normal_index] : vec3(0);
-                face.uvs[vertexId] = idx.texcoord_index >= 0 ? texcoords[idx.texcoord_index] : vec2(0);
+                // Find or create vertex
+                u32 vertexIndex = u32(-1);
+                const vec3& vertexPosition = loadedVertices[idx.vertex_index];
+                const vec2& vertexUV = hasUVs && idx.texcoord_index >= 0 ? loadedUVs[idx.texcoord_index] : vec2(0);
+                const vec3& vertexNormal = hasNormals && idx.normal_index >= 0 ? loadedNormals[idx.normal_index] : vec3(0);
+
+                for (u32 index : vertexIndices[idx.vertex_index]) {
+                    bool hasSamePosition = true;  // modelMesh.geometry->vertices[index] == vertexPosition;  // This is already satisfied by using the same index
+                    bool hasSameUV = !hasUVs || modelMesh.geometry->uvs[index] == vertexUV;
+                    bool hasSameNormal = !hasNormals || modelMesh.geometry->normals[index] == vertexNormal;
+
+                    if (false && hasSamePosition && hasSameUV && hasSameNormal) {
+                        vertexIndex = index;
+                        break;
+                    }
+                }
+
+                if (vertexIndex == u32(-1)) {
+                    // Equal vertex was not found, create a new one
+
+                    modelMesh.geometry->vertices.push_back(vertexPosition);
+                    if (hasUVs)
+                        modelMesh.geometry->uvs.push_back(vertexUV);
+                    if (hasNormals)
+                        modelMesh.geometry->normals.push_back(vertexNormal);
+                    if (calculateTangents) {
+                        modelMesh.geometry->tangents.push_back(vec4(0));
+                        bitangents.push_back(vec3(0));
+                    }
+
+                    vertexIndex = modelMesh.geometry->vertices.size() - 1;
+                    vertexIndices[idx.vertex_index].push_back(vertexIndex);
+                }
+
+                triangle.vertexIds[vertexId] = vertexIndex;
             }
 
             // Calculate tangent and bitangent
-            if (hasUVs) {
-                vec3 edge1 = face.vertices[1] - face.vertices[0];
-                vec3 edge2 = face.vertices[2] - face.vertices[0];
-                vec2 deltaUV1 = face.uvs[1] - face.uvs[0];
-                vec2 deltaUV2 = face.uvs[2] - face.uvs[0];
+            if (calculateTangents) {
+                vec3 edge1 = modelMesh.geometry->vertices[triangle.vertexIds[1]] - modelMesh.geometry->vertices[triangle.vertexIds[0]];
+                vec3 edge2 = modelMesh.geometry->vertices[triangle.vertexIds[2]] - modelMesh.geometry->vertices[triangle.vertexIds[0]];
+                vec2 deltaUV1 = modelMesh.geometry->uvs[triangle.vertexIds[1]] - modelMesh.geometry->uvs[triangle.vertexIds[0]];
+                vec2 deltaUV2 = modelMesh.geometry->uvs[triangle.vertexIds[2]] - modelMesh.geometry->uvs[triangle.vertexIds[0]];
 
                 f32 determinantInv = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
 
-                face.tangent = glm::normalize(determinantInv * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
-                face.bitangent = glm::normalize(determinantInv * (-deltaUV2.x * edge1 + deltaUV1.x * edge2));
+                vec3 tangent = glm::normalize(determinantInv * (deltaUV2.y * edge1 - deltaUV1.y * edge2));
+                vec3 bitangent = glm::normalize(determinantInv * (-deltaUV2.x * edge1 + deltaUV1.x * edge2));
+
+                for (size_t i = 0; i < 3; i++) {
+                    modelMesh.geometry->tangents[triangle.vertexIds[i]] += vec4(tangent, 0);
+                    bitangents[triangle.vertexIds[i]] += bitangent;
+                }
             }
         }
     }
 
-    if (noMaterialSubmesh.faces.size() > 0) {
-        LOG("Mesh has faces without material");
-        noMaterialSubmesh.material = makeRef<Material>();
-        submeshes.push_back(noMaterialSubmesh);
+    if (hasNoMaterialTriangles) {
+        // Add default material for triangles without one
+        LOG("Mesh has triangles without material, adding default material");
+        modelMesh.materials.push_back(makeRef<Material>());
     }
 
-    Mesh mesh(std::move(submeshes), hasNormals, hasUVs);
-    mesh.m_name = filePath.stem().string();
-    mesh.m_shadeSmooth = hasNormals;
+    // Calculate per vertex tangents
+    if (calculateTangents) {
+        for (size_t i = 0; i < modelMesh.geometry->vertices.size(); i++) {
+            vec3 tangent = vec3(modelMesh.geometry->tangents[i]);
+            const vec3& bitangent = bitangents[i];
+            const vec3& normal = modelMesh.geometry->normals[i];
 
-    return mesh;
+            // Gram-Schmidt orthogonalization
+            tangent = glm::normalize(tangent - glm::dot(tangent, normal) * normal);
+
+            // Calculate handedness
+            f32 handedness = glm::dot(glm::cross(normal, tangent), bitangent) < 0.0f ? -1.0f : 1.0f;
+            // bitangent = glm::normalize(handedness * glm::cross(normal, tangent));
+
+            modelMesh.geometry->tangents[i] = vec4(tangent, handedness);
+        }
+    }
+
+    modelMesh.geometry->vertices.shrink_to_fit();
+    modelMesh.geometry->uvs.shrink_to_fit();
+    modelMesh.geometry->normals.shrink_to_fit();
+    modelMesh.geometry->tangents.shrink_to_fit();
+    modelMesh.geometry->triangles.shrink_to_fit();
+
+    Model model(std::move(modelMesh));
+    model.m_name = filePath.stem().string();
+
+    return model;
 }

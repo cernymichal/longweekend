@@ -27,6 +27,8 @@ template Texture<vec4> loadTexture(const std::filesystem::path& filePath, bool f
 
 template <typename T>
 Texture<T> loadTextureSTB(const std::filesystem::path& filePath, bool flipVertically) {
+    LOG("Loading texture " << filePath);
+
     u32 channelsToLoad = 3;
     if constexpr (std::is_same_v<T, f32>)
         channelsToLoad = 1;
@@ -73,8 +75,7 @@ Texture<T> loadTextureSTB(const std::filesystem::path& filePath, bool flipVertic
 
 template <typename T>
 Texture<T> loadEXR(const std::filesystem::path& filePath, bool flipVertically) {
-    std::string pathString = filePath.string();
-    LOG("Loading texture " << pathString);
+    LOG("Loading texture " << filePath);
 
     i32 channelsToLoad = 3;
     if constexpr (std::is_same_v<T, f32>)
@@ -88,6 +89,7 @@ Texture<T> loadEXR(const std::filesystem::path& filePath, bool flipVertically) {
     else
         assert(false);
 
+    std::string pathString = filePath.string();
     EXRVersion version;
     i32 status = ParseEXRVersionFromFile(&version, pathString.c_str());
     if (status != TINYEXR_SUCCESS || version.multipart) {
@@ -163,14 +165,14 @@ Texture<T> loadEXR(const std::filesystem::path& filePath, bool flipVertically) {
 }
 
 void writeBMP(const std::filesystem::path& filePath, const Texture<u8vec3> texture, bool flipVertically) {
-    std::string pathString = filePath.string();
-    LOG("Saving texture " << pathString);
+    LOG("Saving texture " << filePath);
 
     if (flipVertically)
         stbi_flip_vertically_on_write(true);
     else
         stbi_flip_vertically_on_write(false);
 
+    std::string pathString = filePath.string();
     i32 status = stbi_write_bmp(pathString.c_str(), texture.size().x, texture.size().y, 3, texture.data());
     if (status == 0) {
         LOG("Saving texture failed");
@@ -180,8 +182,7 @@ void writeBMP(const std::filesystem::path& filePath, const Texture<u8vec3> textu
 
 template <typename T>
 void writeEXR(const std::filesystem::path& filePath, const Texture<T> texture, bool flipVertically) {
-    std::string pathString = filePath.string();
-    LOG("Saving texture " << pathString);
+    LOG("Saving texture " << filePath);
 
     u32 channelsToSave = 1;
     if constexpr (std::is_same_v<T, f32>)
@@ -243,6 +244,7 @@ void writeEXR(const std::filesystem::path& filePath, const Texture<T> texture, b
     header.requested_pixel_types = requestedPixelTypes.data();
     header.compression_type = TINYEXR_COMPRESSIONTYPE_ZIP;  // TINYEXR_COMPRESSIONTYPE_PIZ;
 
+    std::string pathString = filePath.string();
     const char* error;
     i32 status = SaveEXRImageToFile(&image, &header, pathString.c_str(), &error);
 

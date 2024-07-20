@@ -1,41 +1,44 @@
 #pragma once
 
-#include "Face.h"
-#include "Hittables/IHittable.h"
+#include "HitRecord.h"
+#include "Ray.h"
 
-constexpr u32 BVH_MAX_DEPTH = 32;
-constexpr u32 BVH_MAX_FACES_PER_LEAF = 32;
+constexpr u32 BVH_MAX_DEPTH = 128;
+constexpr u32 BVH_MAX_TRIANGLES_PER_LEAF = 32;
+
+struct Triangle;
 
 class BVH {
 public:
     struct Stats {
         std::chrono::microseconds buildTime;
-        u32 faceCount = 0;
+        u32 triangleCount = 0;
         u32 nodeCount = 0;
         u32 leafCount = 0;
         u32 maxDepth = 0;
-        u32 maxFacesPerLeaf = 0;
+        u32 maxTrianglesPerLeaf = 0;
     };
 
     HitRecord intersect(Ray& ray, bool backfaceCulling = true) const;
 
-    void build(std::vector<Face>& faces);
+    void build(const std::vector<vec3>& vertices, std::vector<Triangle>& triangles);
 
-    bool isBuilt() const { return !m_nodes.empty(); }
+    bool isBuilt() const { return m_vertices != nullptr; }
 
     const Stats& stats() const { return m_stats; }
 
 private:
     struct Node {
         AABB aabb;
-        u32 faceCount;
-        union {              // Either faceIndex or childIndex if faceCount == 0
-            u32 faceIndex;   // First face
-            u32 childIndex;  // Left child
+        u32 triangleCount;
+        union {                 // Either triangleIndex or childIndex if triangleCount == 0
+            u32 triangleIndex;  // First triangle
+            u32 childIndex;     // Left child
         };
     };
 
-    std::vector<Face>* m_faces;
+    const std::vector<vec3>* m_vertices = nullptr;
+    const std::vector<Triangle>* m_triangles = nullptr;
     std::vector<Node> m_nodes;
 
     Stats m_stats;

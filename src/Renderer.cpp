@@ -39,7 +39,7 @@ Renderer::Output Renderer::renderFrame(Ref<World> world, Ref<Camera> camera) {
         .emission = Texture<vec3>(m_outputChannels & (u32)OutputChannel::Emission ? m_imageSize : uvec2(0)),
 #ifdef BVH_TEST
         .aabbTestCount = Texture<f32>(m_outputChannels & (u32)OutputChannel::AABBTestCount ? m_imageSize : uvec2(0)),
-        .faceTestCount = Texture<f32>(m_outputChannels & (u32)OutputChannel::FaceTestCount ? m_imageSize : uvec2(0)),
+        .triangleTestCount = Texture<f32>(m_outputChannels & (u32)OutputChannel::TriangleTestCount ? m_imageSize : uvec2(0)),
 #endif
     };
 
@@ -78,8 +78,8 @@ void Renderer::sampleFrame(Output& output, u32 sampleNum) const {
 #ifdef BVH_TEST
             if (m_outputChannels & (u32)OutputChannel::AABBTestCount)
                 output.aabbTestCount[pixel] = runningAverage(output.aabbTestCount[pixel], (f32)sceneSample.aabbTestCount, sampleNum);
-            if (m_outputChannels & (u32)OutputChannel::FaceTestCount)
-                output.faceTestCount[pixel] = runningAverage(output.faceTestCount[pixel], (f32)sceneSample.faceTestCount, sampleNum);
+            if (m_outputChannels & (u32)OutputChannel::TriangleTestCount)
+                output.triangleTestCount[pixel] = runningAverage(output.triangleTestCount[pixel], (f32)sceneSample.triangleTestCount, sampleNum);
 #endif
         }
     }
@@ -102,7 +102,7 @@ Renderer::PathSample Renderer::samplePath(Ray&& ray) const {
             output.depth = std::isinf(ray.tInterval.max) ? 0.0f : 1.0f / (ray.tInterval.max * glm::length(ray.direction) + 1.0f);  // Reverse depth
 #ifdef BVH_TEST
             output.aabbTestCount = ray.aabbTestCount;
-            output.faceTestCount = ray.faceTestCount;
+            output.triangleTestCount = ray.triangleTestCount;
 #endif
         }
 
@@ -140,12 +140,11 @@ std::pair<HitRecord, ScatterOutput> Renderer::sampleRay(Ray& ray) const {
 
         hit.point = ray.at(ray.tInterval.max);
 
-        auto material = hit.material.lock();
         ScatterOutput scatterOutput;
-        if (material->scatterFunction)
-            scatterOutput = material->scatterFunction(*material, ray, hit);
+        if (hit.material->scatterFunction)
+            scatterOutput = hit.material->scatterFunction(*hit.material, ray, hit);
         else {
-            LOG(std::format("Scatter function not set for material: {}", material->name));
+            LOG(std::format("Scatter function not set for material: {}", hit.material->name));
             scatterOutput = {
                 .scatterDirection = hit.normal + randomUnitVec<3>()};
         }

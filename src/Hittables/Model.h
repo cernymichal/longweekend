@@ -1,121 +1,79 @@
 #pragma once
 
-#include "BVH/BVH.h"
-#include "Face.h"
 #include "IHittable.h"
 #include "Material.h"
-#include "Transform.h"
-
-class Mesh : public IHittable {
-public:
-    struct Submesh {
-        std::vector<Face> faces;  // TODO index buffer?
-        BVH bvh;
-        Ref<Material> material;
-    };
-
-    std::string m_name = "Unnamed";
-    std::vector<Submesh> m_submeshes;
-    bool m_shadeSmooth = true;
-
-    Mesh(std::vector<Submesh>&& submeshes, bool hasNormals, bool hasUVs)
-        : m_submeshes(submeshes), m_hasNormals(hasNormals), m_hasUVs(hasUVs) {}
-
-    HitRecord hit(Ray& ray) const override {
-        HitRecord hit;
-
-        // Check each submesh for intersection
-        for (const auto& submesh : m_submeshes) {
-            bool backfaceCulling = submesh.material->backfaceCulling && submesh.material->scatterFunction != dielectricScatter;  // TODO more general solution
-            HitRecord submeshHit = submesh.bvh.intersect(ray, backfaceCulling);
-
-            if (submeshHit.hit) {
-                hit = submeshHit;
-                hit.material = submesh.material;
-            }
-        }
-
-        // Calculate interpolated normal and uv
-        if (hit.hit) {
-            assert(hit.face != nullptr);
-
-            if (m_hasNormals && m_shadeSmooth) {
-                const auto& face = *hit.face;
-                vec3 interpolatedNormal = hit.barycentric.x * face.normals[0] + hit.barycentric.y * face.normals[1] + hit.barycentric.z * face.normals[2];
-                hit.normal = glm::normalize(interpolatedNormal);
-            }
-            else {
-                const auto& vertices = hit.face->vertices;
-                vec3 flatNormal = glm::cross(vertices[1] - vertices[0], vertices[2] - vertices[0]);
-                hit.normal = glm::normalize(flatNormal);
-            }
-
-            if (m_hasUVs) {
-                vec2 interpolatedUV = hit.barycentric.x * hit.face->uvs[0] + hit.barycentric.y * hit.face->uvs[1] + hit.barycentric.z * hit.face->uvs[2];
-                hit.uv = interpolatedUV;
-                // Reorthogonalize after normal interpolation
-                hit.tangent = glm::normalize(hit.face->tangent - glm::dot(hit.face->tangent, hit.normal) * hit.normal);
-                hit.bitangent = glm::normalize(hit.face->bitangent - glm::dot(hit.face->bitangent, hit.normal) * hit.normal - glm::dot(hit.face->bitangent, hit.tangent) * hit.tangent);
-            }
-            else {
-                hit.uv = vec2(0);
-                // TODO calculate tangent and bitangent
-            }
-        }
-
-        return hit;
-    }
-
-    void frameBegin() override {
-        NODEBUG_ONLY(_Pragma("omp parallel for"))  // Build submesh BVHs in parallel
-        for (size_t i = 0; i < m_submeshes.size(); i++) {
-            auto& submesh = m_submeshes[i];
-            if (!submesh.bvh.isBuilt()) {
-                submesh.bvh.build(submesh.faces);
-
-                const auto& stats = submesh.bvh.stats();
-                LOG(std::format(
-                    "{}, submesh #{} BVH:\n\tbuildTime\t= {}ms\n\tfaceCount\t= {}\n\tnodeCount\t= {}\n\tleafCount\t= {}\n\tmaxDepth\t= {}\n\tavgFacesPerLeaf\t= {}\n\tmaxFacesPerLeaf\t= {}",
-                    m_name,
-                    i,
-                    stats.buildTime.count() / 1000.0f,
-                    stats.faceCount,
-                    stats.nodeCount,
-                    stats.leafCount,
-                    stats.maxDepth,
-                    (f32)stats.faceCount / stats.leafCount,
-                    stats.maxFacesPerLeaf));
-            }
-        }
-    }
-
-private:
-    bool m_hasNormals;
-    bool m_hasUVs;
-};
+#include "Mesh.h"
 
 class Model : public IHittable {
 public:
     std::string m_name = "Unnamed";
-    Transform m_transform;
-    Ref<Mesh> m_mesh;
+    Mesh m_mesh;
+    bool m_backfaceCulling = true;
 
-    Model(const Ref<Mesh>& mesh, const Transform& transform = Transform()) : m_mesh(mesh), m_transform(transform) {}
+    Model(Mesh&& mesh) : m_mesh(mesh) {}
 
     HitRecord hit(Ray& ray) const override {
-        Ray transformedRay = ray.createTransformedRay(m_transform.modelMatrixInverse());
-        HitRecord hit = m_mesh->hit(transformedRay);
+        // Find closest intersection
+        HitRecord hit = m_mesh.geometry->bvh.intersect(ray, m_backfaceCulling);
 
+        // Calculate interpolated normal and uv
         if (hit.hit) {
-            ray.updateFromTransformedRay(transformedRay, m_transform.modelMatrix());
-            hit.transform(m_transform.modelMatrix());
+            assert(hit.triangleId >= 0 && hit.triangleId < m_mesh.geometry->triangles.size());
+
+            hit.material = m_mesh.materials[m_mesh.geometry->triangles[hit.triangleId].materialId];
+            hit.geometry = m_mesh.geometry;
+
+            const auto& triangle = m_mesh.geometry->triangles[hit.triangleId];
+            const auto& vertexIds = triangle.vertexIds;
+            const auto& vertices = m_mesh.geometry->vertices;
+            const auto& uvs = m_mesh.geometry->uvs;
+            const auto& normals = m_mesh.geometry->normals;
+            const auto& tangents = m_mesh.geometry->tangents;
+
+            if (!uvs.empty()) {
+                vec2 interpolatedUV = hit.barycentric.x * uvs[vertexIds[0]] + hit.barycentric.y * uvs[vertexIds[1]] + hit.barycentric.z * uvs[vertexIds[2]];
+                hit.uv = interpolatedUV;
+            }
+
+            if (!normals.empty()) {
+                vec3 interpolatedNormal = hit.barycentric.x * normals[vertexIds[0]] + hit.barycentric.y * normals[vertexIds[1]] + hit.barycentric.z * normals[vertexIds[2]];
+                hit.normal = glm::normalize(interpolatedNormal);
+            }
+            else {
+                vec3 flatNormal = glm::cross(vertices[vertexIds[1]] - vertices[vertexIds[0]], vertices[vertexIds[2]] - vertices[vertexIds[0]]);
+                hit.normal = glm::normalize(flatNormal);
+            }
+
+            if (!tangents.empty()) {
+                vec3 interpolatedTangent = hit.barycentric.x * vec3(tangents[vertexIds[0]]) + hit.barycentric.y * vec3(tangents[vertexIds[1]]) + hit.barycentric.z * vec3(tangents[vertexIds[2]]);
+                f32 handedness = tangents[vertexIds[0]].w;
+
+                hit.tangent = glm::normalize(interpolatedTangent - glm::dot(interpolatedTangent, hit.normal) * hit.normal);  // Reorthogonalize after normal interpolation
+                hit.bitangent = glm::normalize(handedness * glm::cross(hit.normal, hit.tangent));
+            }
         }
 
         return hit;
     }
 
     void frameBegin() override {
-        m_transform.updateMatrices();
-        m_mesh->frameBegin();
+        if (!m_mesh.geometry->bvh.isBuilt()) {  // TODO paralelize
+            m_mesh.geometry->bvh.build(m_mesh.geometry->vertices, m_mesh.geometry->triangles);
+
+            const auto& stats = m_mesh.geometry->bvh.stats();
+            LOG(std::format(
+                "{} BVH:\n\tbuildTime\t\t= {}ms\n\ttriangleCount\t\t= {}\n\tnodeCount\t\t= {}\n\tleafCount\t\t= {}\n\tmaxDepth\t\t= {}\n\tavgTrianglesPerLeaf\t= {}\n\tmaxTrianglesPerLeaf\t= {}",
+                m_name,
+                stats.buildTime.count() / 1000.0f,
+                stats.triangleCount,
+                stats.nodeCount,
+                stats.leafCount,
+                stats.maxDepth,
+                (f32)stats.triangleCount / stats.leafCount,
+                stats.maxTrianglesPerLeaf));
+        }
+
+        for (const auto& material : m_mesh.materials)
+            m_backfaceCulling &= material->backfaceCulling && material->scatterFunction != dielectricScatter;
     }
 };

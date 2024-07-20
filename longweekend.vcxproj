@@ -245,8 +245,10 @@
   <ItemGroup>
     <ClInclude Include="src\BVH\BVH.h" />
     <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="src\HitRecord.h" />
     <ClInclude Include="src\Hittables\HittableGroup.h" />
     <ClInclude Include="src\Hittables\IHittable.h" />
+    <ClInclude Include="src\Hittables\TransformedInstance.h" />
     <ClInclude Include="src\IO\TextureIO.h" />
     <ClInclude Include="src\IO\MeshIO.h" />
     <ClInclude Include="src\Material.h" />
@@ -254,7 +256,7 @@
     <ClInclude Include="src\Postprocessing.h" />
     <ClInclude Include="src\Renderer.h" />
     <ClInclude Include="src\Texture.h" />
-    <ClInclude Include="src\Face.h" />
+    <ClInclude Include="src\Mesh.h" />
     <ClInclude Include="src\Transform.h" />
     <ClInclude Include="src\Utils\Constants.h" />
     <ClInclude Include="src\Utils\Log.h" />

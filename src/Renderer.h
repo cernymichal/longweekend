@@ -13,7 +13,7 @@ public:
         Emission = BIT(4),
 #ifdef BVH_TEST
         AABBTestCount = BIT(5),
-        FaceTestCount = BIT(6),
+        TriangleTestCount = BIT(6),
 #endif
     };
 
@@ -25,7 +25,7 @@ public:
         Texture<vec3> emission;
 #ifdef BVH_TEST
         Texture<f32> aabbTestCount;
-        Texture<f32> faceTestCount;
+        Texture<f32> triangleTestCount;
 #endif
     };
 
@@ -37,7 +37,7 @@ public:
         vec3 emission = vec3(NAN);
 #ifdef BVH_TEST
         u32 aabbTestCount = NAN;
-        u32 faceTestCount = NAN;
+        u32 triangleTestCount = NAN;
 #endif
     };
 
