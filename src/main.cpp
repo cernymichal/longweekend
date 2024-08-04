@@ -7,8 +7,10 @@
 
 constexpr bool ENABLE_PREVIEW = true;
 constexpr bool DENOISE_PREVIEW = true;
-constexpr auto PROGRESS_VIEW_UPDATE_INTERVAL = std::chrono::seconds(3);
+constexpr auto PROGRESS_VIEW_UPDATE_INTERVAL = std::chrono::seconds(5);
 const std::filesystem::path OUTPUT_FOLDER = "output";
+
+constexpr u32 DENOISE_CHANNELS = (u32)Renderer::OutputChannel::Color | (u32)Renderer::OutputChannel::Albedo | (u32)Renderer::OutputChannel::Normal;
 
 std::pair<Ref<World>, Ref<Camera>> sphereScene() {
     auto world = makeRef<World>();
@@ -251,6 +253,7 @@ std::pair<Ref<World>, Ref<Camera>> sponzaScene() {
     camera->m_fov = 50.0f;
 
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
+    world->environmentMaterial->emissionIntensity = 2.5f;
 
     // world
     auto sponzaModel = makeRef<Model>(loadOBJ("resources/sponza/sponza.obj"));
@@ -295,8 +298,7 @@ void render() {
     renderer.m_outputChannels = (u32)Renderer::OutputChannel::Color | (u32)Renderer::OutputChannel::Albedo | (u32)Renderer::OutputChannel::Normal;
     f32 gamma = 2.2f;
 
-    u32 denoiseChannels = (u32)Renderer::OutputChannel::Color | (u32)Renderer::OutputChannel::Albedo | (u32)Renderer::OutputChannel::Normal;
-    bool canBeDenoised = (renderer.m_outputChannels & denoiseChannels) == denoiseChannels;
+    bool canBeDenoised = (renderer.m_outputChannels & DENOISE_CHANNELS) == DENOISE_CHANNELS;
     if (DENOISE_PREVIEW && !canBeDenoised)
         LOG("Denoising preview is disabled because the output channels do not include color, albedo, or normal");
 
@@ -317,7 +319,6 @@ void render() {
     };
 
     // Setup scene
-
     std::function<std::pair<Ref<World>, Ref<Camera>>()> scenes[] = {
         /* 0 */ sphereScene,
         /* 1 */ randomSphereScene,

@@ -57,8 +57,8 @@ public:
     }
 
     void frameBegin() override {
-        if (!m_mesh.geometry->bvh.isBuilt()) {  // TODO paralelize
-            m_mesh.geometry->bvh.build(m_mesh.geometry->vertices, m_mesh.geometry->triangles);
+        if (!m_mesh.geometry->bvh.isBuilt()) {  // TODO paralelize - mutex in bvh
+            m_mesh.geometry->bvh.build();
 
             const auto& stats = m_mesh.geometry->bvh.stats();
             LOG(std::format(

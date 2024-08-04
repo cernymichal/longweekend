@@ -227,15 +227,6 @@ struct Interval {
         return {glm::max(min, other.min), glm::min(max, other.max)};
     }
 
-    MATH_CONSTEXPR MATH_FUNC_QUALIFIER bool intersects(const Interval& other) const {
-        auto result = intersection(other).length() > 0;
-
-        if constexpr (std::is_same_v<T, vec3>)
-            return glm::all(result);
-        else
-            return result;
-    }
-
     MATH_CONSTEXPR MATH_FUNC_QUALIFIER Interval boundingUnion(const Interval& other) const {
         return {glm::min(min, other.min), glm::max(max, other.max)};
     }
@@ -272,6 +263,24 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER static Interval<vec3> Interval<vec3>::empty()
 template <>
 MATH_CONSTEXPR MATH_FUNC_QUALIFIER static Interval<vec3> Interval<vec3>::universe() {
     return {vec3(std::numeric_limits<f32>::lowest()), vec3(std::numeric_limits<f32>::max())};
+}
+
+/*
+ * @param aabb The AABB to calculate the surface area of
+ * @return The surface area of the AABB
+ */
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER f32 AABBSurfaceArea(const AABB& aabb) {
+    auto size = aabb.max - aabb.min;
+    return 2.0f * (size.x * size.y + size.x * size.z + size.y * size.z);
+}
+
+/*
+ * @param aabb The AABB to calculate the volume of
+ * @return The volume of the AABB
+ */
+MATH_CONSTEXPR MATH_FUNC_QUALIFIER f32 AABBvolume(const AABB& aabb) {
+    auto size = aabb.max - aabb.min;
+    return size.x * size.y * size.z;
 }
 
 /*

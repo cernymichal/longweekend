@@ -18,6 +18,8 @@ struct MeshGeometry {
     std::vector<Triangle> triangles;
 
     BVH bvh;
+
+    MeshGeometry() : bvh(vertices, triangles) {}
 };
 
 struct Mesh {

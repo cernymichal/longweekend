@@ -10,6 +10,8 @@ struct Triangle;
 
 class BVH {
 public:
+    BVH(std::vector<vec3>& vertices, std::vector<Triangle>& triangles) : m_vertices(vertices), m_triangles(triangles) {}
+
     struct Stats {
         std::chrono::microseconds buildTime;
         u32 triangleCount = 0;
@@ -21,9 +23,9 @@ public:
 
     HitRecord intersect(Ray& ray, bool backfaceCulling = true) const;
 
-    void build(const std::vector<vec3>& vertices, std::vector<Triangle>& triangles);
+    void build(u32 perAxisSplitTests = 32);
 
-    bool isBuilt() const { return m_vertices != nullptr; }
+    bool isBuilt() const { return !m_nodes.empty(); }
 
     const Stats& stats() const { return m_stats; }
 
@@ -37,9 +39,22 @@ private:
         };
     };
 
-    const std::vector<vec3>* m_vertices = nullptr;
-    const std::vector<Triangle>* m_triangles = nullptr;
+    struct SplitData {
+        bool shouldSplit;
+        u32 splitAxis;
+        f32 splitPoint;
+        AABB leftAABB;
+        AABB rightAABB;
+    };
+
+    std::vector<vec3>& m_vertices;
+    std::vector<Triangle>& m_triangles;
     std::vector<Node> m_nodes;
+    u32 m_perAxisSplitTests = 8;
 
     Stats m_stats;
+
+    bool splitNode(u32 nodeIndex, std::vector<AABB>& triangleAABBs);
+
+    SplitData findBestSplit(u32 nodeIndex, const std::vector<AABB>& triangleAABBs) const;
 };

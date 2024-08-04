@@ -110,7 +110,7 @@ Renderer::PathSample Renderer::samplePath(Ray&& ray) const {
             // Only sample for first non-delta bounce
             sampledNonDeltaBounce = true;
 
-            output.normal = hit.normal;  // hit.normal * 0.5f + 0.5f;
+            output.normal = hit.normal;  // * 0.5f + 0.5f;
             output.albedo = scatterOutput.albedo;
             output.emission = scatterOutput.emission;
         }
@@ -130,7 +130,7 @@ Renderer::PathSample Renderer::samplePath(Ray&& ray) const {
 }
 
 std::pair<HitRecord, ScatterOutput> Renderer::sampleRay(Ray& ray) const {
-    while (true) {  // TODO add max
+    while (true) {
         HitRecord hit = m_world->hierarchy.hit(ray);
 
         if (!hit.hit) {
@@ -152,7 +152,9 @@ std::pair<HitRecord, ScatterOutput> Renderer::sampleRay(Ray& ray) const {
         if (!hit.hit) {
             // Alpha masked hit
             // TODO move this into the intersection check for performance?
-            ray = Ray(hit.point, ray.direction);
+            ray.tInterval.min = ray.tInterval.max + RAY_INITIAL_INTERVAL.min;  // Move ray past hit point
+            ray.tInterval.max = RAY_INITIAL_INTERVAL.max;
+
             continue;
         }
 
