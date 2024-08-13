@@ -204,14 +204,12 @@ inline glm::vec<L, T> randomVec() {
 }
 
 /*
- * @return A random unit vec3.
+ * @return A random unit vec.
  *
  * @note Uses RANDOM_GENERATOR internally.
  */
 template <int L, typename T = f32>
 inline glm::vec<L, T> randomUnitVec() {
-    // for vec3 - faster than sampling a gaussian distribution and normalizing - tested with box-muller transform
-
     while (true) {
         glm::vec<L, T> v = randomVec<L>(glm::vec<L, T>(-1), glm::vec<L, T>(1));
         if (glm::length2(v) <= 1.0)
@@ -220,13 +218,34 @@ inline glm::vec<L, T> randomUnitVec() {
 }
 
 /*
+ * @return A random vec3 on a unit sphere.
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+template <>
+inline glm::vec<3, f32> randomUnitVec() {
+    // https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations
+    vec2 u = randomVec<2>();
+
+    f32 z = 1 - 2 * u[0];
+    f32 r = std::sqrt(std::max(0.0f, 1.0f - z * z));
+    f32 phi = 2 * PI * u[1];
+    return vec3(r * std::cos(phi), r * std::sin(phi), z);
+}
+
+/*
  * @return A random unit vec3 on a unit hemisphere given by a normal.
  *
  * @note Uses RANDOM_GENERATOR internally.
  */
 inline vec3 randomVec3OnHemisphere(const vec3& normal) {
-    auto v = randomUnitVec<3>();
-    return glm::dot(v, normal) >= 0.0f ? v : -v;
+    // https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations
+    vec2 u = randomVec<2>();
+
+    f32 z = u[0];
+    f32 r = std::sqrt(std::max(0.0f, 1.0f - z * z));
+    f32 phi = 2 * PI * u[1];
+    return vec3(r * std::cos(phi), r * std::sin(phi), z);
 }
 
 /*
@@ -235,9 +254,20 @@ inline vec3 randomVec3OnHemisphere(const vec3& normal) {
  * @note Uses RANDOM_GENERATOR internally.
  */
 inline vec2 randomVec2InUnitDisk() {
-    while (true) {
-        auto v = randomVec<2>(vec2(-1), vec2(1));
-        if (glm::length2(v) <= 1.0)
-            return v;
-    }
+    // https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations
+    vec2 u = randomVec<2>();
+
+    f32 r = std::sqrt(u[0]);
+    f32 theta = 2 * PI * u[1];
+    return vec2(r * std::cos(theta), r * std::sin(theta));
+}
+
+/*
+ * @return A random vec2 in a unit square stratified, liearly after each other.
+ *
+ * @note Uses RANDOM_GENERATOR internally.
+ */
+inline vec2 randomVec2Stratified(u32 strataCountPerAxis, u32 strataIndex) {
+    vec2 offset = vec2(strataIndex % strataCountPerAxis, (strataIndex / strataCountPerAxis) % strataCountPerAxis);
+    return (randomVec<2>() + offset) / (f32)strataCountPerAxis;
 }

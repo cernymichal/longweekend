@@ -60,7 +60,7 @@ void Renderer::sampleFrame(Output& output, u32 sampleNum) const {
     for (u32 y = 0; y < m_imageSize.y; y++) {
         uvec2 pixel = uvec2(0, y);
         for (; pixel.x < m_imageSize.x; pixel.x++) {
-            vec2 pixelSamplePoint = randomVec<2>() - 0.5f;
+            vec2 pixelSamplePoint = randomVec2Stratified(4, sampleNum - 1);
             Ray ray = m_camera->createRay(pixel, pixelSamplePoint);
             PathSample sceneSample = samplePath(std::move(ray));
 

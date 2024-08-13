@@ -15,8 +15,8 @@ public:
     f32 m_focusDistance = 10.0f;
 
     Ray createRay(const uvec2& pixel, const vec2& sample) const {
-        vec3 pixelCenter = m_pixelGridOrigin + (f32)pixel.x * m_pixelDeltaU + (f32)pixel.y * m_pixelDeltaV;
-        vec3 samplePoint = pixelCenter + sample.x * m_pixelDeltaU + sample.y * m_pixelDeltaV;
+        vec3 pixelOrigin = m_pixelGridOrigin + (f32)pixel.x * m_pixelDeltaU + (f32)pixel.y * m_pixelDeltaV;
+        vec3 samplePoint = pixelOrigin + sample.x * m_pixelDeltaU + sample.y * m_pixelDeltaV;
         vec3 rayOrigin = m_position;
 
         if (m_defocusAngle > 0) {
@@ -52,7 +52,7 @@ private:
         viewportV = -v * m_viewportSize.y;
         m_pixelDeltaU = viewportU / static_cast<f32>(imageSize.x);
         m_pixelDeltaV = viewportV / static_cast<f32>(imageSize.y);
-        m_pixelGridOrigin = m_position - m_focusDistance * w - viewportU / 2.0f - viewportV / 2.0f + m_pixelDeltaU / 2.0f + m_pixelDeltaV / 2.0f;
+        m_pixelGridOrigin = m_position - m_focusDistance * w - viewportU / 2.0f - viewportV / 2.0f;
 
         auto defocusRadius = m_focusDistance * tan(glm::radians(m_defocusAngle / 2));
         m_defocusDiskU = defocusRadius * u;
