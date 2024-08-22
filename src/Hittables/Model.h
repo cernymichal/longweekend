@@ -11,7 +11,7 @@ public:
     Mesh m_mesh;
     bool m_backfaceCulling = true;
 
-    Model(Mesh&& mesh) : m_mesh(mesh) {}
+    explicit Model(Mesh&& mesh) : m_mesh(mesh) {}
 
     HitRecord hit(Ray& ray) const override {
         // Find closest intersection

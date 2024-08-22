@@ -119,10 +119,10 @@
     <ClInclude Include="src\HitRecord.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Hittables\InfinitePlane.h">
+    <ClInclude Include="src\Hittables\Plane.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Hittables\Rectangle.h">
+    <ClInclude Include="src\Hittables\Disc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

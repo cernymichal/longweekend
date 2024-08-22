@@ -4,11 +4,12 @@
 
 class Sphere : public IHittable {
 public:
+    // TODO transform
     vec3 m_center;
     f32 m_radius;
     Ref<Material> m_material;
 
-    Sphere(const vec3& center, f32 radius, const Ref<Material>& material) : m_center(center), m_radius(radius), m_material(material) {}
+    explicit Sphere(const vec3& center, f32 radius, const Ref<Material>& material) : m_center(center), m_radius(radius), m_material(material) {}
 
     HitRecord hit(Ray& ray) const override {
         f32 halfB = glm::dot(ray.direction, ray.origin - m_center);

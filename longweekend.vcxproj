@@ -246,10 +246,10 @@
     <ClInclude Include="src\BVH\BVH.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\HitRecord.h" />
+    <ClInclude Include="src\Hittables\Disc.h" />
     <ClInclude Include="src\Hittables\HittableGroup.h" />
     <ClInclude Include="src\Hittables\IHittable.h" />
-    <ClInclude Include="src\Hittables\InfinitePlane.h" />
-    <ClInclude Include="src\Hittables\Rectangle.h" />
+    <ClInclude Include="src\Hittables\Plane.h" />
     <ClInclude Include="src\Hittables\TransformedInstance.h" />
     <ClInclude Include="src\IO\TextureIO.h" />
     <ClInclude Include="src\IO\MeshIO.h" />

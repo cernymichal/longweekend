@@ -1,5 +1,5 @@
-#include "Hittables/InfinitePlane.h"
-#include "Hittables/Rectangle.h"
+#include "Hittables/Disc.h"
+#include "Hittables/Plane.h"
 #include "Hittables/Sphere.h"
 #include "Hittables/TransformedInstance.h"
 #include "IO/MeshIO.h"
@@ -51,7 +51,7 @@ std::pair<Ref<World>, Ref<Camera>> sphereScene() {
         .scatterFunction = metallicScatter,
     };
 
-    world->hierarchy.add(makeRef<InfinitePlane>(vec3(0.0, -0.5, -1.0), VEC_UP, groundMaterial));
+    world->hierarchy.add(makeRef<Plane>(Transform(vec3(0.0, -0.5, -1.0)), groundMaterial, vec2(INFINITY)));
     world->hierarchy.add(makeRef<Sphere>(vec3(0.0, 0.0, -1), 0.5f, centerMaterial));
     world->hierarchy.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), 0.5f, leftMaterial));
     world->hierarchy.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), -0.4f, leftMaterial));
@@ -78,7 +78,7 @@ std::pair<Ref<World>, Ref<Camera>> randomSphereScene() {
     *groundMaterial = {
         .albedo = vec3(0.5, 0.5, 0.5),
     };
-    world->hierarchy.add(makeRef<InfinitePlane>(vec3(0, 0, 0), VEC_UP, groundMaterial));
+    world->hierarchy.add(makeRef<Plane>(Transform(vec3(0, 0, 0)), groundMaterial, vec2(INFINITY)));
 
     u32 sphereGridSize = 32;
     for (u32 i = 0; i < sphereGridSize * sphereGridSize; i++) {
@@ -160,23 +160,23 @@ std::pair<Ref<World>, Ref<Camera>> teapotDragonScene() {
     // world
     auto groundMaterial = makeRef<Material>();
     *groundMaterial = {
-        .albedo = vec3(0.05f),
+        .albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/uv_test.png")),
     };
-    world->hierarchy.add(makeRef<Rectangle>(Transform(vec3(0.0f, -0.15f, 0.0f)), groundMaterial));
+    world->hierarchy.add(makeRef<Disc>(Transform(vec3(0.0f, -0.15f, -0.1f)), groundMaterial));
 
     auto teapotModel = makeRef<Model>(loadOBJ("resources/teapot.obj"));
     *teapotModel->m_mesh.materials[0] = {
         .ir = 1.5f,
         .scatterFunction = dielectricScatter,
     };
-    auto teapot = makeRef<TransformedInstance<Model>>(teapotModel, Transform(vec3(-0.12, -0.1, 0.3), glm::radians(vec3(0, -20, 0)), vec3(1.5)));
+    auto teapot = makeRef<TransformedInstance>(teapotModel, Transform(vec3(-0.12, -0.1, 0.3), glm::radians(vec3(0, -20, 0)), vec3(1.5)));
     world->hierarchy.add(teapot);
 
     auto dragonModel = makeRef<Model>(loadOBJ("resources/dragon.obj"));
     *dragonModel->m_mesh.materials[0] = {
         .albedo = vec3(0.5, 0.6, 0.8),
     };
-    auto dragon = makeRef<TransformedInstance<Model>>(dragonModel, Transform(vec3(0.1, 0.02, 0.0), glm::radians(vec3(0, 110, 0)), vec3(0.6)));
+    auto dragon = makeRef<TransformedInstance>(dragonModel, Transform(vec3(0.1, 0.02, 0.0), glm::radians(vec3(0, 110, 0)), vec3(0.6)));
     world->hierarchy.add(dragon);
 
     auto sphere_material = makeRef<Material>();
@@ -210,10 +210,10 @@ std::pair<Ref<World>, Ref<Camera>> reimuScene() {
     *groundMaterial = {
         .albedo = vec3(0.05f),
     };
-    world->hierarchy.add(makeRef<Rectangle>(Transform(vec3(0.0f, -0.43f, 0.3f), glm::radians(vec3(0, -45, 0)), vec3(2.0f)), groundMaterial));
+    world->hierarchy.add(makeRef<Plane>(Transform(vec3(0.0f, -0.43f, 0.3f), glm::radians(vec3(0, -45, 0)), vec3(2.0f)), groundMaterial));
 
     auto reimuModel = makeRef<Model>(loadOBJ("resources/reimu/reimu.obj"));
-    auto reimu = makeRef<TransformedInstance<Model>>(reimuModel, Transform(vec3(0.5, 0.15, 0.5), glm::radians(vec3(0, -90, 0)), vec3(1.0 / 20.0)));
+    auto reimu = makeRef<TransformedInstance>(reimuModel, Transform(vec3(0.5, 0.15, 0.5), glm::radians(vec3(0, -90, 0)), vec3(1.0 / 20.0)));
 
     world->hierarchy.add(reimu);
 
@@ -233,7 +233,7 @@ std::pair<Ref<World>, Ref<Camera>> sponzaScene() {
 
     // world
     auto sponzaModel = makeRef<Model>(loadOBJ("resources/sponza/sponza.obj"));
-    auto sponza = makeRef<TransformedInstance<Model>>(sponzaModel, Transform(vec3(0.0f), vec3(0.0f), vec3(1.0 / 100.0)));
+    auto sponza = makeRef<TransformedInstance>(sponzaModel, Transform(vec3(0.0f), vec3(0.0f), vec3(1.0 / 100.0)));
     world->hierarchy.add(sponza);
 
     auto lightMaterial = makeRef<Material>();
@@ -261,7 +261,8 @@ std::pair<Ref<World>, Ref<Camera>> normalTestScene() {
 
     // world
     auto cubeModel = makeRef<Model>(loadOBJ("resources/normal_test/normal_test.obj"));
-    auto cube = makeRef<TransformedInstance<Model>>(cubeModel, Transform(vec3(0.0f), glm::radians(vec3(30, -30, 0)), vec3(1.0 / 2.0)));
+    cubeModel->m_mesh.materials[0]->albedoTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/uv_test.png"));
+    auto cube = makeRef<TransformedInstance>(cubeModel, Transform(vec3(0.0f), glm::radians(vec3(30, -30, 0)), vec3(1.0 / 2.0)));
 
     world->hierarchy.add(cube);
 

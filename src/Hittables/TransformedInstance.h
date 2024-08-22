@@ -3,17 +3,14 @@
 #include "IHittable.h"
 #include "Transform.h"
 
-template <typename T>
 class TransformedInstance : public IHittable {
 public:
     Transform m_transform;
-    Ref<T> m_hittable;
+    Ref<IHittable> m_hittable;
 
-    TransformedInstance(const Ref<T>& hittable, const Transform& transform = Transform()) : m_hittable(hittable), m_transform(transform) {}
+    explicit TransformedInstance(const Ref<IHittable>& hittable, const Transform& transform = Transform()) : m_hittable(hittable), m_transform(transform) {}
 
     HitRecord hit(Ray& ray) const override {
-        static_assert(std::is_base_of_v<IHittable, T>, "T must derive from IHittable");
-
         Ray transformedRay = ray.createTransformedRay(m_transform.modelMatrixInverse());
         HitRecord hit = m_hittable->hit(transformedRay);
 
