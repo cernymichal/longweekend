@@ -25,7 +25,7 @@ SCATTER_FUNCTION(lambertianScatter) {
     auto emission = material.emissionTexture ? material.emissionTexture->sampleInterpolated(hit.uv) : material.emission;
 
     return {
-        .scatterDirection = scatterDirection,
+        .scatterDirection = glm::normalize(scatterDirection),
         .albedo = albedo,
         .emission = emission * material.emissionIntensity,
     };
@@ -47,7 +47,7 @@ SCATTER_FUNCTION(metallicScatter) {
     }
 
     // Metallic
-    auto reflected = reflect(glm::normalize(ray.direction), hit.normal);
+    auto reflected = reflect(ray.direction, hit.normal);
     reflected += material.fuzziness * randomUnitVec<3>();
 
     auto albedo = material.albedoTexture ? material.albedoTexture->sampleInterpolated(hit.uv) : material.albedo;
@@ -55,7 +55,7 @@ SCATTER_FUNCTION(metallicScatter) {
 
     return {
         .didScatter = glm::dot(reflected, hit.normal) > 0,
-        .scatterDirection = reflected,
+        .scatterDirection = glm::normalize(reflected),
         .albedo = albedo,
         .emission = emission * material.emissionIntensity,
     };
@@ -70,21 +70,20 @@ SCATTER_FUNCTION(dielectricScatter) {
     }
 
     // Dielectric
-    auto normalizedDirection = glm::normalize(ray.direction);
-    bool frontFaceHit = glm::dot(normalizedDirection, hit.normal) <= 0;
+    bool frontFaceHit = glm::dot(ray.direction, hit.normal) <= 0;
     auto refractionRatio = frontFaceHit ? 1.0f / material.ir : material.ir;
     vec3 outwardNormal = frontFaceHit ? hit.normal : -hit.normal;
 
-    auto cosTheta = std::min(glm::dot(-normalizedDirection, outwardNormal), 1.0f);
+    auto cosTheta = glm::dot(-ray.direction, outwardNormal);
     auto sinTheta = std::sqrt(1.0f - cosTheta * cosTheta);
 
-    vec3 scatterDirection;
+    vec3 scatterDirection;  // normalized
 
     bool totalInternalReflection = refractionRatio * sinTheta > 1.0f;
     if (totalInternalReflection || reflectance(cosTheta, refractionRatio) > random<f32>())
-        scatterDirection = reflect(normalizedDirection, outwardNormal);
+        scatterDirection = reflect(ray.direction, outwardNormal);
     else
-        scatterDirection = ::refract(normalizedDirection, outwardNormal, refractionRatio);
+        scatterDirection = ::refract(ray.direction, outwardNormal, refractionRatio);
 
     return {
         .isTransmission = true,
@@ -94,13 +93,12 @@ SCATTER_FUNCTION(dielectricScatter) {
 }
 
 SCATTER_FUNCTION(environmentScatter) {
-    auto unitDirection = glm::normalize(ray.direction);
-    hit.normal = -unitDirection;
+    hit.normal = -ray.direction;
 
     vec3 emission;
     if (material.emissionTexture) {
-        f32 u = atan2(unitDirection.z, unitDirection.x) / TWO_PI + 0.5f;
-        f32 v = acos(unitDirection.y) / PI;
+        f32 u = atan2(ray.direction.z, ray.direction.x) / TWO_PI + 0.5f;
+        f32 v = acos(ray.direction.y) / PI;
         emission = material.emissionTexture->sampleInterpolated({u, v});
     }
     else

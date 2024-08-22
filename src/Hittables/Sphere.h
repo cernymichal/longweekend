@@ -11,19 +11,18 @@ public:
     Sphere(const vec3& center, f32 radius, const Ref<Material>& material) : m_center(center), m_radius(radius), m_material(material) {}
 
     HitRecord hit(Ray& ray) const override {
-        f32 a = glm::length2(ray.direction);
         f32 halfB = glm::dot(ray.direction, ray.origin - m_center);
         f32 c = glm::dot(ray.origin - m_center, ray.origin - m_center) - m_radius * m_radius;
-        f32 discriminant = halfB * halfB - a * c;
+        f32 discriminant = halfB * halfB - c;
 
         if (discriminant < 0)
             return HitRecord();
 
-        f32 t = (-halfB - sqrt(discriminant)) / a;
+        f32 t = -halfB - sqrt(discriminant);
 
         // TODO only front face intersection based on material
         if (!ray.tInterval.surrounds(t)) {
-            t = (-halfB + sqrt(discriminant)) / a;
+            t = -halfB + sqrt(discriminant);
             if (!ray.tInterval.surrounds(t))
                 return HitRecord();
         }

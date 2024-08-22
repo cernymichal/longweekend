@@ -2,6 +2,11 @@
 
 class Transform {
 public:
+    Transform() = default;
+
+    Transform(const vec3& position, const quat& rotation = vec3(0.0f), const vec3& scale = vec3(1.0f))
+        : m_position(position), m_rotation(rotation), m_scale(scale), m_cacheValid(false) {}
+
     void setPosition(const vec3& position) {
         m_position = position;
         m_cacheValid = false;

@@ -27,6 +27,7 @@ inline T runningAverage(const T& previousValue, const T& currentValue, u32 curre
 Renderer::Output Renderer::renderFrame(Ref<World> world, Ref<Camera> camera) {
     m_world = world;
     m_camera = camera;
+    m_sampleStratasPerAxis = std::max(1U, (u32)std::sqrt(m_samples));
 
     m_camera->initialize(m_imageSize);
     m_world->hierarchy.frameBegin();
@@ -60,7 +61,7 @@ void Renderer::sampleFrame(Output& output, u32 sampleNum) const {
     for (u32 y = 0; y < m_imageSize.y; y++) {
         uvec2 pixel = uvec2(0, y);
         for (; pixel.x < m_imageSize.x; pixel.x++) {
-            vec2 pixelSamplePoint = randomVec2Stratified(4, sampleNum - 1);
+            vec2 pixelSamplePoint = randomVec2Stratified(m_sampleStratasPerAxis, sampleNum - 1);  // TODO progressive upping of resolution
             Ray ray = m_camera->createRay(pixel, pixelSamplePoint);
             PathSample sceneSample = samplePath(std::move(ray));
 
@@ -99,7 +100,7 @@ Renderer::PathSample Renderer::samplePath(Ray&& ray) const {
         attenuation *= scatterOutput.albedo;
 
         if (bounceNum == 0) {
-            output.depth = std::isinf(ray.tInterval.max) ? 0.0f : 1.0f / (ray.tInterval.max * glm::length(ray.direction) + 1.0f);  // Reverse depth
+            output.depth = std::isinf(ray.tInterval.max) ? 0.0f : 1.0f / (ray.tInterval.max + 1.0f);  // Reverse depth
 #ifdef BVH_TEST
             output.aabbTestCount = ray.aabbTestCount;
             output.triangleTestCount = ray.triangleTestCount;
@@ -115,11 +116,8 @@ Renderer::PathSample Renderer::samplePath(Ray&& ray) const {
             output.emission = scatterOutput.emission;
         }
 
-        // if (glm::length2(attenuation) < 0.001f)
-        //     break;  // Early termination for small values, might break high exposure
-
-        if (!scatterOutput.didScatter)
-            break;  // Absorbed
+        if (!scatterOutput.didScatter || glm::all(attenuation < vec3(1e-6f)))
+            break;  // Early termination
 
         ray = Ray(hit.point, scatterOutput.scatterDirection);  // Bounce ray
     }

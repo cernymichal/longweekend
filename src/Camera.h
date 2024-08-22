@@ -25,7 +25,7 @@ public:
             rayOrigin += m_defocusDiskU * random.x + m_defocusDiskV * random.y;
         }
 
-        return Ray(rayOrigin, samplePoint - rayOrigin);
+        return Ray(rayOrigin, glm::normalize(samplePoint - rayOrigin));
     }
 
 private:

@@ -1,3 +1,5 @@
+#include "Hittables/InfinitePlane.h"
+#include "Hittables/Rectangle.h"
 #include "Hittables/Sphere.h"
 #include "Hittables/TransformedInstance.h"
 #include "IO/MeshIO.h"
@@ -49,7 +51,7 @@ std::pair<Ref<World>, Ref<Camera>> sphereScene() {
         .scatterFunction = metallicScatter,
     };
 
-    world->hierarchy.add(makeRef<Sphere>(vec3(0.0, -100.5, -1.0), 100.0f, groundMaterial));
+    world->hierarchy.add(makeRef<InfinitePlane>(vec3(0.0, -0.5, -1.0), VEC_UP, groundMaterial));
     world->hierarchy.add(makeRef<Sphere>(vec3(0.0, 0.0, -1), 0.5f, centerMaterial));
     world->hierarchy.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), 0.5f, leftMaterial));
     world->hierarchy.add(makeRef<Sphere>(vec3(-1.0, 0.0, -1), -0.4f, leftMaterial));
@@ -76,48 +78,48 @@ std::pair<Ref<World>, Ref<Camera>> randomSphereScene() {
     *groundMaterial = {
         .albedo = vec3(0.5, 0.5, 0.5),
     };
-    world->hierarchy.add(makeRef<Sphere>(vec3(0, -1000, 0), 1000, groundMaterial));
+    world->hierarchy.add(makeRef<InfinitePlane>(vec3(0, 0, 0), VEC_UP, groundMaterial));
 
-    for (i32 a = -11; a < 11; a++) {
-        for (i32 b = -11; b < 11; b++) {
-            auto chooseMat = random<f64>();
-            vec3 center(a + 0.9 * random<f64>(), 0.2, b + 0.9 * random<f64>());
+    u32 sphereGridSize = 32;
+    for (u32 i = 0; i < sphereGridSize * sphereGridSize; i++) {
+        vec2 xz = (randomVec2Stratified(sphereGridSize, i) - vec2(0.7f, 0.5f)) * (f32)sphereGridSize;
+        vec3 center = vec3(xz.x, 0.2, xz.y);
+        if (glm::length(center - vec3(4, 0.2, 0)) < 1.2 || glm::length(center - vec3(0, 0.2, 0)) < 1.2 || glm::length(center - vec3(-4, 0.2, 0)) < 1.2)
+            continue;
 
-            if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
-                auto sphereMaterial = makeRef<Material>();
-
-                if (chooseMat < 0.7) {
-                    // diffuse
-                    *sphereMaterial = {
-                        .albedo = randomVec<3>() * randomVec<3>(),
-                    };
-                }
-                else if (chooseMat < 0.8) {
-                    // metal
-                    *sphereMaterial = {
-                        .albedo = randomVec<3>(vec3(0.5), vec3(1)),
-                        .fuzziness = random<f32>(0, 0.5),
-                        .scatterFunction = metallicScatter,
-                    };
-                }
-                else if (chooseMat < 0.9) {
-                    // emissive
-                    *sphereMaterial = {
-                        .emission = randomVec<3>() * randomVec<3>(),
-                        .emissionIntensity = random<f32>(10, 50),
-                    };
-                }
-                else {
-                    // glass
-                    *sphereMaterial = {
-                        .ir = 1.5f,
-                        .scatterFunction = dielectricScatter,
-                    };
-                }
-
-                world->hierarchy.add(makeRef<Sphere>(center, 0.2, sphereMaterial));
-            }
+        auto sphereMaterial = makeRef<Material>();
+        auto chooseMat = random<f64>();
+        if (chooseMat < 0.7) {
+            // diffuse
+            *sphereMaterial = {
+                .albedo = randomVec<3>() * randomVec<3>(),
+            };
         }
+        else if (chooseMat < 0.8) {
+            // metal
+            *sphereMaterial = {
+                .albedo = randomVec<3>(vec3(0.5), vec3(1)),
+                .fuzziness = random<f32>(0, 0.5),
+                .scatterFunction = metallicScatter,
+            };
+        }
+        else if (chooseMat < 0.9) {
+            // emissive
+            *sphereMaterial = {
+                .albedo = vec3(0),
+                .emission = randomVec<3>(),
+                .emissionIntensity = random<f32>(10, 50),
+            };
+        }
+        else {
+            // glass
+            *sphereMaterial = {
+                .ir = 1.5f,
+                .scatterFunction = dielectricScatter,
+            };
+        }
+
+        world->hierarchy.add(makeRef<Sphere>(center, 0.2, sphereMaterial));
     }
 
     auto material1 = makeRef<Material>();
@@ -156,29 +158,25 @@ std::pair<Ref<World>, Ref<Camera>> teapotDragonScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
+    auto groundMaterial = makeRef<Material>();
+    *groundMaterial = {
+        .albedo = vec3(0.05f),
+    };
+    world->hierarchy.add(makeRef<Rectangle>(Transform(vec3(0.0f, -0.15f, 0.0f)), groundMaterial));
+
     auto teapotModel = makeRef<Model>(loadOBJ("resources/teapot.obj"));
     *teapotModel->m_mesh.materials[0] = {
         .ir = 1.5f,
         .scatterFunction = dielectricScatter,
     };
-    auto teapot = makeRef<TransformedInstance<Model>>(teapotModel);
-
-    teapot->m_transform.scale(vec3(1.5));
-    teapot->m_transform.move(vec3(-0.12, -0.1, 0.3));
-    teapot->m_transform.rotate(glm::radians(vec3(0, -20, 0)));
-
+    auto teapot = makeRef<TransformedInstance<Model>>(teapotModel, Transform(vec3(-0.12, -0.1, 0.3), glm::radians(vec3(0, -20, 0)), vec3(1.5)));
     world->hierarchy.add(teapot);
 
     auto dragonModel = makeRef<Model>(loadOBJ("resources/dragon.obj"));
     *dragonModel->m_mesh.materials[0] = {
         .albedo = vec3(0.5, 0.6, 0.8),
     };
-    auto dragon = makeRef<TransformedInstance<Model>>(dragonModel);
-
-    dragon->m_transform.scale(vec3(0.6));
-    dragon->m_transform.move(vec3(0.1, 0.02, 0.0));
-    dragon->m_transform.rotate(glm::radians(vec3(0, 110, 0)));
-
+    auto dragon = makeRef<TransformedInstance<Model>>(dragonModel, Transform(vec3(0.1, 0.02, 0.0), glm::radians(vec3(0, 110, 0)), vec3(0.6)));
     world->hierarchy.add(dragon);
 
     auto sphere_material = makeRef<Material>();
@@ -188,33 +186,10 @@ std::pair<Ref<World>, Ref<Camera>> teapotDragonScene() {
         .emissionIntensity = 10.0f,
     };
     auto sphere = makeRef<Sphere>(vec3(-0.1, 0.15, 0.1), 0.02, sphere_material);
-
     world->hierarchy.add(sphere);
 
     camera->m_defocusAngle = 0.6f;
     camera->m_focusDistance = glm::distance(camera->m_position, sphere->m_center) - 0.1f;
-
-    return {world, camera};
-}
-
-std::pair<Ref<World>, Ref<Camera>> tetrahedronScene() {
-    auto world = makeRef<World>();
-    auto camera = makeRef<Camera>();
-
-    // camera
-    camera->m_position = vec3(-0.1, -0.3, 2);
-    camera->m_lookAt = vec3(0.3, 0.3, 0.3);
-    camera->m_fov = 40.0f;
-    // camera->m_defocusAngle = 0.6f;
-    // camera->m_focusDistance = 10.0f;
-
-    world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
-
-    // world
-    auto tetrahedronModel = makeRef<Model>(loadOBJ("resources/tetrahedron.obj"));
-    auto tetrahedron = makeRef<TransformedInstance<Model>>(tetrahedronModel);
-
-    world->hierarchy.add(tetrahedron);
 
     return {world, camera};
 }
@@ -231,12 +206,14 @@ std::pair<Ref<World>, Ref<Camera>> reimuScene() {
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
 
     // world
-    auto reimuModel = makeRef<Model>(loadOBJ("resources/reimu/reimu.obj"));
-    auto reimu = makeRef<TransformedInstance<Model>>(reimuModel);
+    auto groundMaterial = makeRef<Material>();
+    *groundMaterial = {
+        .albedo = vec3(0.05f),
+    };
+    world->hierarchy.add(makeRef<Rectangle>(Transform(vec3(0.0f, -0.43f, 0.3f), glm::radians(vec3(0, -45, 0)), vec3(2.0f)), groundMaterial));
 
-    reimu->m_transform.scale(vec3(1.0 / 20.0));
-    reimu->m_transform.move(vec3(0.5, 0.15, 0.5));
-    reimu->m_transform.rotate(glm::radians(vec3(0, -90, 0)));
+    auto reimuModel = makeRef<Model>(loadOBJ("resources/reimu/reimu.obj"));
+    auto reimu = makeRef<TransformedInstance<Model>>(reimuModel, Transform(vec3(0.5, 0.15, 0.5), glm::radians(vec3(0, -90, 0)), vec3(1.0 / 20.0)));
 
     world->hierarchy.add(reimu);
 
@@ -253,15 +230,20 @@ std::pair<Ref<World>, Ref<Camera>> sponzaScene() {
     camera->m_fov = 50.0f;
 
     world->environmentMaterial->emissionTexture = makeRef<Texture<vec3>>(loadTexture<vec3>("resources/evening_field_1k.exr"));
-    world->environmentMaterial->emissionIntensity = 2.5f;
 
     // world
     auto sponzaModel = makeRef<Model>(loadOBJ("resources/sponza/sponza.obj"));
-    auto sponza = makeRef<TransformedInstance<Model>>(sponzaModel);
-
-    sponza->m_transform.scale(vec3(1.0 / 100.0));
-
+    auto sponza = makeRef<TransformedInstance<Model>>(sponzaModel, Transform(vec3(0.0f), vec3(0.0f), vec3(1.0 / 100.0)));
     world->hierarchy.add(sponza);
+
+    auto lightMaterial = makeRef<Material>();
+    *lightMaterial = {
+        .albedo = vec3(0),
+        .emission = vec3(1, 0.92, 0.95),
+        .emissionIntensity = 50.0f,
+    };
+    world->hierarchy.add(makeRef<Sphere>(vec3(-4, 2.5, 1), 0.3f, lightMaterial));
+    world->hierarchy.add(makeRef<Sphere>(vec3(4, 0.5, -1.5), 0.3f, lightMaterial));
 
     return {world, camera};
 }
@@ -279,10 +261,7 @@ std::pair<Ref<World>, Ref<Camera>> normalTestScene() {
 
     // world
     auto cubeModel = makeRef<Model>(loadOBJ("resources/normal_test/normal_test.obj"));
-    auto cube = makeRef<TransformedInstance<Model>>(cubeModel);
-
-    cube->m_transform.scale(vec3(1.0 / 2.0));
-    cube->m_transform.rotate(glm::radians(vec3(30, -30, 0)));
+    auto cube = makeRef<TransformedInstance<Model>>(cubeModel, Transform(vec3(0.0f), glm::radians(vec3(30, -30, 0)), vec3(1.0 / 2.0)));
 
     world->hierarchy.add(cube);
 
@@ -323,10 +302,9 @@ void render() {
         /* 0 */ sphereScene,
         /* 1 */ randomSphereScene,
         /* 2 */ teapotDragonScene,
-        /* 3 */ tetrahedronScene,
-        /* 4 */ reimuScene,
-        /* 5 */ sponzaScene,
-        /* 6 */ normalTestScene,
+        /* 3 */ reimuScene,
+        /* 4 */ sponzaScene,
+        /* 5 */ normalTestScene,
     };
     u32 sceneIndex = 2;
 

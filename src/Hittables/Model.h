@@ -6,7 +6,8 @@
 
 class Model : public IHittable {
 public:
-    std::string m_name = "Unnamed";
+    std::string m_name = "Model";
+
     Mesh m_mesh;
     bool m_backfaceCulling = true;
 

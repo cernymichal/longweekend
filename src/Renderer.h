@@ -54,6 +54,7 @@ public:
 private:
     Ref<World> m_world;
     Ref<Camera> m_camera;
+    u32 m_sampleStratasPerAxis;
 
     void sampleFrame(Output& output, u32 sampleNum) const;
 

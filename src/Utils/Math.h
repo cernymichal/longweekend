@@ -138,6 +138,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER u8 maxDimension(const vec3& v) {
 /*
  * @param v The incoming vector
  * @param normal The normal vector, normalized
+ * @return The reflected vector, normalized
  */
 MATH_CONSTEXPR MATH_FUNC_QUALIFIER vec3 reflect(const vec3& v, const vec3& normal) {
     return v - 2.0f * glm::dot(v, normal) * normal;
@@ -147,6 +148,7 @@ MATH_CONSTEXPR MATH_FUNC_QUALIFIER vec3 reflect(const vec3& v, const vec3& norma
  * @param v The incoming vector, normalized
  * @param normal The normal vector, normalized
  * @param refractionRatio The ratio of the incoming to outgoing refractive indices
+ * @return The refracted vector, normalized
  */
 MATH_FUNC_QUALIFIER vec3 refract(const vec3& v, const vec3& normal, f32 refractionRatio) {
     // Snell's law
@@ -251,6 +253,14 @@ struct Interval {
         return {std::numeric_limits<T>::lowest(), std::numeric_limits<T>::max()};
     }
 };
+
+template <typename T>
+MATH_FUNC_QUALIFIER std::ostream& operator<<(std::ostream& os, const Interval<T>& interval) {
+    // TODO std::format
+
+    os << "[" << interval.min << ", " << interval.max << "]";
+    return os;
+}
 
 // Axis Aligned Bounding Box
 using AABB = Interval<vec3>;
