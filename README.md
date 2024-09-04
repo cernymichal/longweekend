@@ -15,4 +15,22 @@ A simple CPU (for now) path tracer based mainly on the Ray Tracing in One Weeken
 - Visual Studio 2022, C++
 - vcpkg
 
-The project uses vcpkg for all dependencies (vcpkg.json), Visual Studio should install them for you automagically.
+Before building make sure to add a precompiled OIDN version to `external/` like so:
+```plaintext
+external
+├───bin
+│       OpenImageDenoise.dll
+│       OpenImageDenoise_core.dll
+│       ...
+├───include
+│   └───OpenImageDenoise
+│           config.h
+│           oidn.h
+│           oidn.hpp
+└───lib
+        OpenImageDenoise.lib
+        OpenImageDenoise_core.lib
+```
+The 2.3.0 release is available [here](https://github.com/RenderKit/oidn/releases/tag/v2.3.0).
+
+The project uses vcpkg for all other dependencies (vcpkg.json), Visual Studio should install them for you automagically.
