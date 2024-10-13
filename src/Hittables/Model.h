@@ -50,7 +50,7 @@ public:
                 f32 handedness = tangents[vertexIds[0]].w;
 
                 hit.tangent = glm::normalize(interpolatedTangent - glm::dot(interpolatedTangent, hit.normal) * hit.normal);  // Reorthogonalize after normal interpolation
-                hit.bitangent = glm::normalize(handedness * glm::cross(hit.normal, hit.tangent));
+                hit.bitangent = handedness * glm::cross(hit.normal, hit.tangent);
             }
         }
 
